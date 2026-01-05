@@ -1,0 +1,964 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  LayoutGrid, 
+  CreditCard, 
+  Users, 
+  Settings, 
+  LogOut, 
+  Bell, 
+  Search, 
+  Menu, 
+  ExternalLink,
+  ChevronRight,
+  FileText,
+  Briefcase,
+  Monitor,
+  HelpCircle,
+  Mail,
+  Calendar,
+  Shield,
+  Database,
+  Pencil,
+  X,
+  Save,
+  Plus,
+  Trash2,
+  History,
+  RotateCcw,
+  Clock,
+  CheckCircle2,
+  Tag,
+  AlertCircle,
+  Layers,
+  Cpu,
+  Zap,
+  Activity,
+  Download,
+  Upload,
+  Globe,
+  RefreshCw,
+  ChevronUp,
+  ChevronDown,
+  Cloud,
+  Github,
+  Key,
+  Send,
+  Star,
+  MoreVertical,
+  Heart,
+  Sparkles,
+  ArrowUp,
+  ArrowDown,
+  AlignLeft,
+  AlertTriangle,
+  Share2,
+  Link as LinkIcon
+} from 'lucide-react';
+
+// --- ICON MAPPING ---
+const IconMap = {
+  Users, CreditCard, Mail, Database, Calendar, FileText, Monitor, Shield, HelpCircle, LayoutGrid, Briefcase, Settings, Bell, Cpu, Zap, Activity
+};
+
+// --- STORAGE HELPERS ---
+const getStorage = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  const data = localStorage.getItem(key);
+  if (!data) return fallback;
+  try { return JSON.parse(data); } catch { return fallback; }
+};
+
+const saveToStorage = (key, data) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(key, JSON.stringify(data));
+  }
+};
+
+const INITIAL_APPS = [
+  { id: 1, name: 'Sistem E-Kinerja', desc: 'Analisis produktivitas dan penilaian capaian kinerja.', category: 'kepegawaian', icon: 'Users', color: 'from-blue-500 to-indigo-600', url: '#' },
+];
+
+const INITIAL_CATEGORIES = [
+  { id: 'kepegawaian', label: 'Kepegawaian', icon: 'Users', desc: 'Layanan administrasi kepegawaian dan pengembangan SDM.' },
+  { id: 'umum', label: 'Layanan Umum', icon: 'Briefcase', desc: 'Fasilitas umum dan layanan pendukung operasional kantor.' },
+];
+
+const DEFAULT_DASHBOARD_DESC = "Ekosistem aplikasi terpadu untuk mendukung produktivitas dan integrasi data perusahaan secara *real-time*.";
+
+// --- COMPONENTS ---
+const Toast = ({ message, type = "success" }) => (
+  <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[300] bg-white/90 backdrop-blur-xl text-slate-800 px-6 py-4 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center gap-3 border animate-in fade-in slide-in-from-bottom-4 duration-500 ${type === "error" ? "border-rose-200" : "border-white/20"}`}>
+    {type === "success" ? <CheckCircle2 size={20} className="text-emerald-500" /> : <AlertCircle size={20} className="text-rose-500" />}
+    <span className="text-sm font-bold tracking-tight">{message}</span>
+  </div>
+);
+
+// --- CONFIRMATION MODAL COMPONENT ---
+const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-6 animate-in zoom-in-95 duration-300 border border-slate-100">
+        <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mb-4 mx-auto">
+           <AlertTriangle size={24} />
+        </div>
+        <h3 className="text-xl font-black text-slate-800 text-center mb-2">{title}</h3>
+        <p className="text-sm text-slate-500 text-center font-medium leading-relaxed mb-8">{message}</p>
+        <div className="flex gap-3">
+           <button onClick={onCancel} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors text-sm">Batal</button>
+           <button onClick={onConfirm} className="flex-1 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200 text-sm">Ya, Hapus</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- APP CARD ---
+const AppCard = ({ app, onEdit, onNotify }) => {
+  const IconComponent = IconMap[app.icon] || LayoutGrid;
+  
+  const handleOpenLink = (e) => {
+    if (e.target.closest('.action-btn')) return;
+    if (app.url === '#' || !app.url) {
+      onNotify("Tautan layanan ini belum dikonfigurasi.");
+    } else {
+      window.open(app.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const isOfficial = app.category === 'kepegawaian';
+  const badgeColor = isOfficial ? 'bg-rose-100 text-rose-600' : 'bg-orange-100 text-orange-600';
+  const badgeIcon = isOfficial ? <Shield size={10} className="fill-current" /> : <Star size={10} className="fill-current" />;
+
+  return (
+    <div 
+      onClick={handleOpenLink}
+      className="group relative bg-white rounded-2xl p-3 transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-1 cursor-pointer flex flex-col h-full border border-slate-100/50 hover:border-white select-none overflow-hidden"
+    >
+      <div className={`relative aspect-[4/3] w-full rounded-xl bg-gradient-to-br ${app.color} flex items-center justify-center overflow-hidden shadow-inner transition-shadow duration-500`}>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-white/20 blur-2xl rounded-full group-hover:scale-150 transition-transform duration-700"></div>
+        <div className="relative z-10 text-white drop-shadow-sm transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 ease-out">
+          <IconComponent size={40} strokeWidth={1.5} />
+        </div>
+        <button 
+          onClick={(e) => { e.stopPropagation(); onEdit(app); }} 
+          className="action-btn absolute top-2 right-2 p-2 bg-white/20 backdrop-blur-md text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white hover:text-slate-900 shadow-sm"
+        >
+          <Pencil size={12} />
+        </button>
+      </div>
+
+      <div className="pt-3 px-1 flex flex-col flex-1">
+        <div className="flex items-center gap-2 mb-2">
+           <span className={`inline-flex items-center gap-1 ${badgeColor} text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter`}>
+             {badgeIcon} {isOfficial ? 'Official' : 'Featured'}
+           </span>
+        </div>
+        <h3 className="text-sm font-bold text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors line-clamp-2">
+          {app.name}
+        </h3>
+        <p className="text-[10px] text-slate-400 font-medium line-clamp-2 mt-1.5 leading-relaxed">
+          {app.desc || "Tidak ada deskripsi tersedia untuk layanan ini."}
+        </p>
+        <div className="mt-auto pt-4">
+           <div className="w-full py-2.5 rounded-xl bg-slate-50 text-slate-500 text-[10px] font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
+              <span>Buka Layanan</span> 
+              <ChevronRight size={10} />
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function App() {
+  const [activeVersion, setActiveVersion] = useState(() => getStorage('portal_active_version_v3', '1.0'));
+  const [history, setHistory] = useState(() => getStorage('portal_history_v3', []));
+  const [apps, setApps] = useState(() => getStorage('portal_apps_v3', INITIAL_APPS));
+  const [categories, setCategories] = useState(() => getStorage('portal_categories_v3', INITIAL_CATEGORIES));
+  const [dashboardDesc, setDashboardDesc] = useState(() => getStorage('portal_dashboard_desc_v3', DEFAULT_DASHBOARD_DESC));
+  
+  const [githubUrl, setGithubUrl] = useState(() => localStorage.getItem('portal_github_sync_url') || 'https://github.com/dokterdarlinsyah-cmd/portal');
+  const [githubToken, setGithubToken] = useState(() => localStorage.getItem('portal_github_token') || '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');
+
+  const [selectedCat, setSelectedCat] = useState('all');
+  const [search, setSearch] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  
+  // Custom Confirmation State
+  const [confirmAction, setConfirmAction] = useState(null); // { title, message, onConfirm }
+  
+  const [toast, setToast] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // --- INIT: LOAD DATA FROM URL (SHARE FEATURE - ROBUST DECODING & UI STATE RESTORE) ---
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) setSidebarOpen(false);
+      else setSidebarOpen(true);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    // Check for shared data in URL
+    const params = new URLSearchParams(window.location.search);
+    const sharedData = params.get('data');
+    
+    if (sharedData) {
+      try {
+        // Robust decoding: Base64 -> decodeURIComponent -> JSON parse
+        // Ini menangani karakter khusus (UTF-8) dengan aman
+        const decodedString = decodeURIComponent(atob(sharedData).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        
+        const decoded = JSON.parse(decodedString);
+
+        if (decoded.apps && decoded.categories) {
+          // Restore Data Utama
+          setApps(decoded.apps);
+          setCategories(decoded.categories);
+          
+          // Restore Konfigurasi Global
+          if (decoded.dashboardDesc) setDashboardDesc(decoded.dashboardDesc);
+          if (decoded.githubUrl) setGithubUrl(decoded.githubUrl);
+          if (decoded.githubToken) setGithubToken(decoded.githubToken);
+          if (decoded.activeVersion) setActiveVersion(decoded.activeVersion);
+          
+          // Restore UI State (Agar tampilan 100% sama persis)
+          if (decoded.uiState) {
+             if (decoded.uiState.selectedCat) setSelectedCat(decoded.uiState.selectedCat);
+             if (decoded.uiState.search) setSearch(decoded.uiState.search);
+             // Kita bisa memaksa sidebar terbuka/tutup sesuai snapshot, tapi tetap hormati ukuran layar mobile
+             if (window.innerWidth >= 1024 && typeof decoded.uiState.sidebarOpen !== 'undefined') {
+                setSidebarOpen(decoded.uiState.sidebarOpen);
+             }
+          }
+          
+          showToast("Snapshot dashboard berhasil dipulihkan!", "success");
+          
+          // Clean URL agar tidak dimuat ulang saat refresh
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
+      } catch (e) {
+        console.error("Gagal memuat data share", e);
+        showToast("Tautan konfigurasi rusak.", "error");
+      }
+    }
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const getGithubInfo = (url) => {
+    if (!url) return { owner: '', repo: '', folderPath: '' };
+    const cleanUrl = url.replace('.git', '').replace(/\/$/, '');
+    const pathParts = cleanUrl.replace('https://github.com/', '').split('/');
+    const owner = pathParts[0];
+    const repo = pathParts[1];
+    let folderPath = "";
+    if (pathParts.includes('tree')) {
+      const treeIdx = pathParts.indexOf('tree');
+      folderPath = pathParts.slice(treeIdx + 2).join('/');
+    }
+    return { owner, repo, folderPath };
+  };
+
+  const incrementVersion = (v) => {
+    const base = v.replace(/\*/g, '');
+    const parts = base.split('.');
+    if (parts.length > 0) {
+      const last = parseInt(parts[parts.length - 1], 10);
+      if (!isNaN(last)) {
+        parts[parts.length - 1] = (last + 1).toString();
+        return parts.join('.');
+      }
+    }
+    return base;
+  };
+
+  const fetchFromGithub = async (baseUrl, silent = false) => {
+    if (!baseUrl) return;
+    if (!silent) setIsLoading(true);
+    try {
+      const { owner, repo, folderPath } = getGithubInfo(baseUrl);
+      if (!owner || !repo) throw new Error("URL GitHub tidak valid.");
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${folderPath}`;
+      const response = await fetch(apiUrl, githubToken ? { headers: { 'Authorization': `token ${githubToken}` } } : {});
+      if (!response.ok) throw new Error("Gagal akses repositori.");
+      const files = await response.json();
+      const jsonFiles = files
+        .filter(f => f.name.toLowerCase().endsWith('.json'))
+        .map(f => {
+          const match = f.name.match(/v(\d+(\.\d+)*)/);
+          return { ...f, versionValue: match ? match[1] : "0", sortKey: match ? match[1].split('.').map(n => n.padStart(5, '0')).join('.') : "0" };
+        })
+        .sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+
+      if (jsonFiles.length === 0) throw new Error("File JSON tidak ditemukan.");
+      const latest = jsonFiles[0];
+      const dataRes = await fetch(latest.download_url);
+      const data = await dataRes.json();
+      if (data.apps && data.categories) {
+        setApps(data.apps);
+        setCategories(data.categories);
+        // Restore konfigurasi URL dan Deskripsi jika ada
+        if (data.config) {
+            if (data.config.githubUrl) setGithubUrl(data.config.githubUrl);
+            if (data.config.dashboardDesc) setDashboardDesc(data.config.dashboardDesc);
+        }
+        setActiveVersion(latest.versionValue !== "0" ? latest.versionValue : activeVersion);
+        if (!silent) showToast(`Data Sinkron: ${latest.name}`);
+      }
+    } catch (err) {
+      if (!silent) showToast(err.message, "warning");
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  };
+
+  const uploadToGithub = async () => {
+    if (!githubToken) {
+      showToast("Token diperlukan.", "warning");
+      setShowSettings(true);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { owner, repo, folderPath } = getGithubInfo(githubUrl);
+      const isDraft = activeVersion.includes('*');
+      const nextVersion = isDraft ? incrementVersion(activeVersion) : activeVersion.replace(/\*/g, '');
+      const fileName = `portal_v${nextVersion}.json`;
+      const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
+      
+      // Menyertakan konfigurasi (URL & Deskripsi) dalam data yang dikirim
+      const config = { githubUrl, dashboardDesc }; 
+      const content = btoa(JSON.stringify({ version: nextVersion, apps, categories, config }, null, 2));
+      
+      const getFileRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
+        headers: { 'Authorization': `token ${githubToken}` }
+      });
+      let sha = null;
+      if (getFileRes.ok) {
+        const fileData = await getFileRes.json();
+        sha = fileData.sha;
+      }
+
+      const putRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `token ${githubToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Update portal v${nextVersion}`,
+          content: content,
+          sha: sha
+        })
+      });
+
+      if (!putRes.ok) throw new Error("Gagal mengunggah data.");
+      showToast(`Berhasil Diunggah: v${nextVersion}`);
+      setActiveVersion(nextVersion);
+    } catch (err) {
+      showToast(err.message, "warning");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchFromGithub(githubUrl, true); }, []);
+
+  useEffect(() => {
+    saveToStorage('portal_apps_v3', apps);
+    saveToStorage('portal_categories_v3', categories);
+    saveToStorage('portal_history_v3', history);
+    saveToStorage('portal_dashboard_desc_v3', dashboardDesc);
+    localStorage.setItem('portal_active_version_v3', activeVersion);
+    localStorage.setItem('portal_github_sync_url', githubUrl);
+    localStorage.setItem('portal_github_token', githubToken);
+  }, [apps, categories, history, activeVersion, githubUrl, githubToken, dashboardDesc]);
+
+  const markAsDraft = () => { if (!activeVersion.includes('*')) setActiveVersion(activeVersion + "*"); };
+
+  const handleSaveVersion = () => {
+    const nextVersion = incrementVersion(activeVersion);
+    // Sertakan config dalam riwayat lokal juga
+    const config = { githubUrl, dashboardDesc };
+    const newEntry = { 
+      id: Date.now(), 
+      name: nextVersion, 
+      timestamp: new Date().toLocaleString('id-ID'), 
+      data: { apps: [...apps], categories: [...categories], config } 
+    };
+    setHistory([newEntry, ...history].slice(0, 10));
+    setActiveVersion(nextVersion);
+    showToast(`Versi v${nextVersion} Disimpan`);
+  };
+
+  const handleExportJSON = () => {
+    const cleanVersion = activeVersion.replace('*', '');
+    // Sertakan config dalam file ekspor
+    const config = { githubUrl, dashboardDesc };
+    const dataStr = JSON.stringify({ version: cleanVersion, apps, categories, config }, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const link = document.createElement('a');
+    link.setAttribute('href', dataUri);
+    link.setAttribute('download', `portal_v${cleanVersion}.json`);
+    link.click();
+  };
+
+  // --- SHARE FUNCTION (FIXED: ROBUST FULL STATE SNAPSHOT) ---
+  const handleShare = () => {
+    try {
+      // 1. Prepare FULL data payload termasuk UI STATE
+      const sharePayload = {
+        apps,
+        categories,
+        dashboardDesc,
+        githubUrl,    // Disertakan: URL Repo
+        githubToken,  // Disertakan: Token (Sensitif)
+        activeVersion,
+        uiState: {    // Menyimpan state Tampilan agar "persis sama"
+           selectedCat,
+           search,
+           sidebarOpen
+        }
+      };
+      
+      // 2. Encode to Base64 with UTF-8 support
+      // Teknik ini memastikan emoji/karakter khusus tidak merusak tautan
+      const jsonString = JSON.stringify(sharePayload);
+      const encodedData = btoa(encodeURIComponent(jsonString).replace(/%([0-9A-F]{2})/g,
+          function toSolidBytes(match, p1) {
+              return String.fromCharCode('0x' + p1);
+      }));
+      
+      // 3. Construct URL
+      const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+
+      // 4. Copy to clipboard (Robust Fallback Method)
+      const copyToClipboardFallback = (text) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed"; // Avoid scrolling to bottom
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          const successful = document.execCommand('copy');
+          if (successful) showToast("Tautan snapshot lengkap disalin!");
+          else showToast("Gagal menyalin tautan.", "error");
+        } catch (err) {
+          showToast("Browser tidak mendukung salin otomatis.", "error");
+        }
+        document.body.removeChild(textArea);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl)
+          .then(() => showToast("Tautan snapshot lengkap disalin!"))
+          .catch(() => copyToClipboardFallback(shareUrl));
+      } else {
+        copyToClipboardFallback(shareUrl);
+      }
+
+    } catch (error) {
+      console.error("Share error:", error);
+      showToast("Data terlalu besar/kompleks untuk tautan.", "error");
+    }
+  };
+
+  // --- KATEGORI MANAGEMEN ---
+  const addCategory = () => {
+    const newId = 'cat_' + Date.now();
+    const newCat = { id: newId, label: 'Kategori Baru', icon: 'LayoutGrid', desc: 'Deskripsi kategori baru.' };
+    setCategories([...categories, newCat]);
+    markAsDraft();
+    showToast("Kategori ditambahkan");
+  };
+
+  const updateCategory = (id, field, value) => {
+    setCategories(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+    markAsDraft();
+  };
+
+  const moveCategory = (index, direction) => {
+    const newCats = [...categories];
+    if (direction === 'up' && index > 0) {
+      [newCats[index], newCats[index - 1]] = [newCats[index - 1], newCats[index]];
+    } else if (direction === 'down' && index < newCats.length - 1) {
+      [newCats[index], newCats[index + 1]] = [newCats[index + 1], newCats[index]];
+    }
+    setCategories(newCats);
+    markAsDraft();
+  };
+
+  // --- FUNGSI HAPUS KATEGORI BARU (SAFE MODAL) ---
+  const deleteCategory = (id) => {
+    // 1. Cek apakah ada layanan yang menggunakan kategori ini
+    const relatedApps = apps.filter(a => a.category === id);
+    
+    if (relatedApps.length > 0) {
+      showToast(`Gagal: Masih ada ${relatedApps.length} layanan aktif di sini.`, "error");
+      return;
+    }
+
+    // 2. Trigger Custom Modal
+    setConfirmAction({
+      title: "Hapus Kategori?",
+      message: "Kategori ini akan dihapus permanen. Pastikan tidak ada data penting yang hilang.",
+      onConfirm: () => {
+        setCategories(prev => prev.filter(c => c.id !== id));
+        markAsDraft();
+        showToast("Kategori berhasil dihapus");
+        setConfirmAction(null);
+      }
+    });
+  };
+
+  // --- FUNGSI HAPUS LAYANAN BARU (SAFE MODAL) ---
+  const handleDeleteApp = () => {
+    if (!editing) return;
+    
+    setConfirmAction({
+      title: "Hapus Layanan?",
+      message: `Anda akan menghapus layanan "${editing.name}". Tindakan ini tidak dapat dibatalkan.`,
+      onConfirm: () => {
+        setApps(prev => prev.filter(x => x.id !== editing.id));
+        markAsDraft();
+        setEditing(null);
+        showToast("Layanan berhasil dihapus");
+        setConfirmAction(null);
+      }
+    });
+  };
+
+  const filtered = apps.filter(a => (selectedCat === 'all' || a.category === selectedCat) && a.name.toLowerCase().includes(search.toLowerCase()));
+  const currentCategoryDesc = selectedCat === 'all' ? dashboardDesc : categories.find(c => c.id === selectedCat)?.desc || "";
+
+  return (
+    <div className="flex h-screen bg-[#FDFDFD] text-slate-900 font-sans overflow-hidden">
+      <input type="file" ref={fileInputRef} onChange={(e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const json = JSON.parse(ev.target.result);
+            if (json.apps && json.categories) {
+              setApps(json.apps); setCategories(json.categories);
+              // Pulihkan konfigurasi dari file impor
+              if (json.config) {
+                 if (json.config.githubUrl) setGithubUrl(json.config.githubUrl);
+                 if (json.config.dashboardDesc) setDashboardDesc(json.config.dashboardDesc);
+              }
+              if (json.version) setActiveVersion(json.version + "*");
+              showToast("Data Diimpor!");
+            }
+          } catch { showToast("Format JSON salah", "warning"); }
+        };
+        reader.readAsText(file);
+      }} accept=".json" className="hidden" />
+
+      {/* MOBILE OVERLAY BACKDROP */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-300"
+        />
+      )}
+
+      {/* Sidebar Modern Floating */}
+      <aside className={`
+        fixed inset-y-4 left-4 rounded-[2.5rem] bg-white border border-slate-100 flex flex-col transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] z-50 shadow-[0_10px_50px_rgba(0,0,0,0.03)]
+        ${sidebarOpen ? 'w-[280px] translate-x-0' : 'w-[90px] -translate-x-[200%] md:translate-x-0'}
+      `}>
+        <div className="h-28 flex items-center justify-center shrink-0 relative">
+          <div className="flex items-center gap-4">
+            <div className="relative w-11 h-11 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-100 transform rotate-3">
+               <Sparkles size={22} fill="currentColor" />
+            </div>
+            {sidebarOpen && (
+              <div className="flex flex-col">
+                <span className="text-xl font-black tracking-tighter text-slate-800">Portal<span className="text-indigo-600">.Net</span></span>
+                <span className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em]">Enterprise System</span>
+              </div>
+            )}
+          </div>
+          {/* TOMBOL TUTUP KHUSUS MOBILE */}
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className={`md:hidden absolute right-5 top-1/2 -translate-y-1/2 p-2 bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all ${!sidebarOpen && 'hidden'}`}
+          >
+            <X size={18} />
+          </button>
+        </div>
+        
+        <div className="flex-1 px-5 py-2 space-y-2 overflow-y-auto custom-scrollbar">
+          <button onClick={() => setSelectedCat('all')} className={`w-full flex items-center p-4 rounded-2xl transition-all duration-500 group ${selectedCat === 'all' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>
+            <LayoutGrid size={22} />
+            {sidebarOpen && <span className="ml-4 text-sm font-bold">Semua Aplikasi</span>}
+          </button>
+          
+          <div className="pt-8 pb-4">
+            <p className={`px-5 mb-4 text-[9px] font-black text-slate-200 uppercase tracking-[0.3em] ${!sidebarOpen && 'hidden'}`}>Kategori Layanan</p>
+            {categories.map(c => (
+              <button key={c.id} onClick={() => setSelectedCat(c.id)} className={`w-full flex items-center p-4 rounded-2xl transition-all duration-500 mb-1 ${selectedCat === c.id ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>
+                {React.createElement(IconMap[c.icon] || Briefcase, { size: 22 })}
+                {sidebarOpen && <span className="ml-4 text-sm font-bold line-clamp-1">{c.label}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-5 mt-auto">
+           <div className={`rounded-3xl bg-slate-50 p-1.5 flex flex-col gap-1 ${!sidebarOpen && 'items-center'}`}>
+              <button onClick={() => setShowHistory(!showHistory)} className="p-3.5 rounded-2xl hover:bg-white hover:shadow-sm text-slate-400 hover:text-indigo-600 transition-all flex items-center gap-3">
+                <History size={18} />
+                {sidebarOpen && <span className="text-xs font-bold">Log Versi</span>}
+              </button>
+              <button onClick={() => setShowSettings(true)} className="p-3.5 rounded-2xl hover:bg-white hover:shadow-sm text-slate-400 hover:text-indigo-600 transition-all flex items-center gap-3">
+                <Settings size={18} />
+                {sidebarOpen && <span className="text-xs font-bold">Konfigurasi</span>}
+              </button>
+           </div>
+        </div>
+      </aside>
+
+      {/* Main Content Fluid */}
+      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${sidebarOpen ? 'ml-0 md:ml-[315px]' : 'ml-0 md:ml-[120px]'}`}>
+        
+        {/* Header Glassmorphism */}
+        <header className="px-8 py-6 sticky top-0 z-40">
+           <div className="bg-white/80 backdrop-blur-2xl border border-white/40 rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.03)] px-8 py-4 flex items-center justify-between gap-8">
+              <div className="flex items-center gap-6 flex-1">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-3 bg-slate-50 hover:bg-white rounded-2xl text-slate-400 hover:text-slate-800 transition-all shadow-sm"><Menu size={20} /></button>
+                
+                <div className="relative max-w-lg w-full hidden sm:block">
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="Telusuri aplikasi..." 
+                    className="w-full bg-slate-50/50 hover:bg-white focus:bg-white border border-transparent focus:border-indigo-100 rounded-2xl py-3 pl-14 pr-6 text-sm font-semibold outline-none transition-all focus:shadow-[0_10px_30px_rgba(0,0,0,0.02)]" 
+                    value={search} 
+                    onChange={(e) => setSearch(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                 {/* TOMBOL SHARE */}
+                 <button 
+                   onClick={handleShare}
+                   title="Salin Tautan Publik (Snapshot Lengkap)"
+                   className="p-3 relative group overflow-hidden transition-all duration-300 text-slate-400 hover:text-slate-900"
+                 >
+                    <LinkIcon size={22} className="relative z-10 transition-transform duration-500 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-slate-50 rounded-xl opacity-0 group-hover:opacity-100 -z-10 transition-all duration-300 transform scale-75 group-hover:scale-100"></div>
+                 </button>
+
+                 {/* TOMBOL BACKUP LOKAL */}
+                 <button 
+                   onClick={handleExportJSON} 
+                   title="Backup Lokal" 
+                   className="p-3 relative group overflow-hidden transition-all duration-300 text-slate-400 hover:text-slate-900"
+                 >
+                    <Download size={22} className="relative z-10 transition-transform duration-500 group-hover:translate-y-1" />
+                    <div className="absolute inset-0 bg-slate-50 rounded-xl opacity-0 group-hover:opacity-100 -z-10 transition-all duration-300 transform scale-75 group-hover:scale-100"></div>
+                 </button>
+                 
+                 {/* TOMBOL PESAWAT (SYNC) */}
+                 <button 
+                   onClick={uploadToGithub} 
+                   disabled={isLoading}
+                   title="Kirim ke Cloud (GitHub)"
+                   className={`p-3 relative group overflow-hidden transition-all duration-300 ${isLoading ? 'text-indigo-400 animate-pulse' : 'text-slate-400 hover:text-slate-900'}`}
+                 >
+                    {isLoading ? (
+                      <RefreshCw size={22} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Send size={22} className="relative z-10 transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
+                        <div className="absolute inset-0 bg-slate-50 rounded-xl opacity-0 group-hover:opacity-100 -z-10 transition-all duration-300 transform scale-75 group-hover:scale-100"></div>
+                      </>
+                    )}
+                 </button>
+                 
+                 {/* VERSI PILL */}
+                 <div 
+                   onClick={activeVersion.includes('*') ? handleSaveVersion : undefined} 
+                   className={`cursor-pointer px-5 py-3 rounded-2xl text-xs font-black flex items-center gap-3 border transition-all ${activeVersion.includes('*') ? 'bg-orange-50 border-orange-100 text-orange-600 hover:shadow-xl hover:shadow-orange-50' : 'bg-emerald-50 border-emerald-50 text-emerald-600'}`}
+                 >
+                    <div className={`w-2.5 h-2.5 rounded-full ${activeVersion.includes('*') ? 'bg-orange-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                    <span>v{activeVersion}</span>
+                    {activeVersion.includes('*') && <Save size={16} />}
+                 </div>
+              </div>
+           </div>
+        </header>
+
+        {/* Dynamic Canvas */}
+        <div className="flex-1 overflow-y-auto px-10 py-4 custom-scrollbar">
+          <div className="max-w-[1700px] mx-auto pb-32">
+            
+            <div className="mb-14 flex flex-col lg:flex-row lg:items-end justify-between gap-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                   <div className="w-10 h-1 bg-indigo-600 rounded-full"></div>
+                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">Resource Center</span>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter">
+                  {selectedCat === 'all' ? 'Dashboard Utama' : categories.find(c => c.id === selectedCat)?.label}
+                </h1>
+                <p className="text-slate-400 font-medium mt-4 max-w-2xl text-lg leading-relaxed">{currentCategoryDesc}</p>
+              </div>
+              <button onClick={() => { 
+                const id = Date.now(); 
+                const newApp = { id, name: 'Layanan Baru', desc: 'Masukkan deskripsi di sini.', category: selectedCat === 'all' ? 'umum' : selectedCat, icon: 'LayoutGrid', color: 'from-slate-800 to-slate-950', url: '#' }; 
+                setApps([...apps, newApp]); setEditing(newApp); 
+                markAsDraft(); 
+              }} className="group flex items-center gap-4 px-8 py-4 bg-slate-900 text-white rounded-3xl font-black text-sm shadow-2xl shadow-slate-200 hover:scale-[1.03] transition-all hover:bg-indigo-600">
+                <Plus size={20} strokeWidth={4} />
+                <span>DAFTARKAN LAYANAN</span>
+              </button>
+            </div>
+
+            {/* Version Logs (Inline History) */}
+            {showHistory && (
+              <div className="mb-14 p-10 bg-white rounded-[3rem] shadow-sm border border-slate-50 animate-in fade-in slide-in-from-top-6 duration-500">
+                 <div className="flex items-center justify-between mb-8">
+                    <h3 className="font-black text-xl text-slate-800 flex items-center gap-4"><History size={24} className="text-indigo-600"/> Riwayat Pembaruan</h3>
+                    <button onClick={() => setShowHistory(false)} className="p-3 hover:bg-slate-50 rounded-full text-slate-300 transition-all"><X size={24} /></button>
+                 </div>
+                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    {history.map(h => (
+                       <button key={h.id} onClick={() => { 
+                         setApps(h.data.apps); 
+                         setCategories(h.data.categories); 
+                         if (h.data.config) {
+                             if (h.data.config.githubUrl) setGithubUrl(h.data.config.githubUrl);
+                             if (h.data.config.dashboardDesc) setDashboardDesc(h.data.config.dashboardDesc);
+                         }
+                         setActiveVersion(h.name); 
+                         setShowHistory(false); 
+                         showToast(`Pulihkan v${h.name}`); 
+                       }} className="p-6 rounded-3xl bg-slate-50/50 border border-transparent hover:border-indigo-100 hover:bg-white hover:shadow-xl transition-all text-left group">
+                          <span className="text-[10px] font-black text-slate-300 group-hover:text-indigo-500 uppercase tracking-widest">Version</span>
+                          <div className="text-2xl font-black text-slate-800 mt-2">v{h.name}</div>
+                          <div className="text-[10px] text-slate-400 mt-4 font-bold flex items-center gap-2"><Clock size={12}/> {h.timestamp.split(' ')[0]}</div>
+                       </button>
+                    ))}
+                 </div>
+              </div>
+            )}
+
+            {/* Grid Fluid Layout */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 md:gap-8">
+              {filtered.map((a, i) => (
+                <div key={a.id} className="animate-in fade-in zoom-in duration-700" style={{ animationDelay: `${i * 40}ms` }}>
+                  <AppCard app={a} onEdit={setEditing} onNotify={(msg) => showToast(msg, "warning")} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Configuration Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[3rem] shadow-3xl w-full max-w-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-500">
+            <div className="px-10 py-8 border-b border-slate-50 flex justify-between items-center">
+              <h2 className="text-2xl font-black tracking-tighter text-slate-800">Konfigurasi Sistem</h2>
+              <button onClick={() => setShowSettings(false)} className="p-3 hover:bg-slate-50 rounded-full text-slate-400 transition-all"><X size={28} /></button>
+            </div>
+            <div className="p-10 space-y-12 overflow-y-auto max-h-[75vh] custom-scrollbar">
+              
+              {/* GENERAL SETTINGS */}
+              <section className="space-y-6">
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 bg-violet-100 text-violet-600 rounded-2xl"><AlignLeft size={22} /></div>
+                    <h3 className="font-black text-lg text-slate-700">Pengaturan Umum</h3>
+                 </div>
+                 <div className="bg-slate-50/50 p-6 rounded-[2rem] space-y-4 border border-slate-100">
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-slate-400 ml-3 uppercase tracking-widest">Deskripsi Dashboard Utama</label>
+                       <textarea 
+                          value={dashboardDesc} 
+                          onChange={(e) => { setDashboardDesc(e.target.value); markAsDraft(); }} 
+                          className="w-full px-6 py-4 rounded-2xl border-none bg-white shadow-sm text-sm font-medium focus:ring-4 focus:ring-indigo-50 outline-none transition-all h-24 resize-none leading-relaxed" 
+                          placeholder="Masukkan deskripsi untuk halaman depan..." 
+                       />
+                    </div>
+                 </div>
+              </section>
+
+              {/* CATEGORY MANAGEMENT SECTION */}
+              <section className="space-y-6">
+                 <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl"><Layers size={22} /></div>
+                      <h3 className="font-black text-lg text-slate-700">Manajemen Kategori</h3>
+                    </div>
+                    <button onClick={addCategory} className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all">
+                       <Plus size={14} /> Tambah
+                    </button>
+                 </div>
+                 
+                 <div className="bg-slate-50/50 p-6 rounded-[2rem] space-y-4 border border-slate-100">
+                    {categories.length === 0 && <p className="text-center text-slate-400 text-xs py-4">Belum ada kategori.</p>}
+                    
+                    {categories.map((c, idx) => (
+                      <div key={c.id} className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                         {/* Row 1: Header */}
+                         <div className="flex items-center gap-3 p-3">
+                            {/* Icon Selector */}
+                            <div className="relative shrink-0">
+                                <select 
+                                  value={c.icon} 
+                                  onChange={(e) => updateCategory(c.id, 'icon', e.target.value)}
+                                  className="appearance-none w-10 h-10 rounded-xl bg-slate-50 border-none text-transparent cursor-pointer absolute inset-0 z-10 opacity-0"
+                                >
+                                  {Object.keys(IconMap).map(iconName => (
+                                    <option key={iconName} value={iconName}>{iconName}</option>
+                                  ))}
+                                </select>
+                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center pointer-events-none">
+                                  {React.createElement(IconMap[c.icon] || Briefcase, { size: 18 })}
+                                </div>
+                            </div>
+
+                            {/* Label Input */}
+                            <input 
+                                type="text" 
+                                value={c.label} 
+                                onChange={(e) => updateCategory(c.id, 'label', e.target.value)}
+                                className="flex-1 bg-transparent border-none text-sm font-bold text-slate-700 focus:ring-0 px-2"
+                                placeholder="Nama Kategori"
+                            />
+
+                            {/* Actions - BUTTONS ALWAYS VISIBLE */}
+                            <div className="flex items-center gap-1">
+                                <button type="button" disabled={idx === 0} onClick={() => moveCategory(idx, 'up')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-30 transition-colors"><ChevronUp size={16} /></button>
+                                <button type="button" disabled={idx === categories.length - 1} onClick={() => moveCategory(idx, 'down')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 disabled:opacity-30 transition-colors"><ChevronDown size={16} /></button>
+                                <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                                <button type="button" onClick={() => deleteCategory(c.id)} className="p-2 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 transition-colors"><Trash2 size={16} /></button>
+                            </div>
+                         </div>
+                         
+                         {/* Row 2: Description Input */}
+                         <div className="px-3 pb-3 pt-0">
+                            <input 
+                               type="text"
+                               value={c.desc || ""}
+                               onChange={(e) => updateCategory(c.id, 'desc', e.target.value)}
+                               className="w-full bg-slate-50 hover:bg-slate-100 focus:bg-indigo-50 rounded-xl px-4 py-3 text-xs font-medium text-slate-500 focus:text-slate-700 border-none outline-none transition-colors"
+                               placeholder="Deskripsi singkat kategori..."
+                            />
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+              </section>
+
+              <section className="space-y-6">
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 bg-slate-900 text-white rounded-2xl"><Github size={22} /></div>
+                    <h3 className="font-black text-lg text-slate-700">GitHub Cloud Sync</h3>
+                 </div>
+                 <div className="bg-slate-50/50 p-8 rounded-[2rem] space-y-6 border border-slate-100">
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-slate-400 ml-3 uppercase tracking-widest">Repository URL</label>
+                       <input type="text" value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} className="w-full px-6 py-4 rounded-2xl border-none bg-white shadow-sm text-sm font-bold focus:ring-4 focus:ring-indigo-50 outline-none transition-all" placeholder="https://github.com/..." />
+                    </div>
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-slate-400 ml-3 uppercase tracking-widest">Personal Access Token</label>
+                       <input type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} className="w-full px-6 py-4 rounded-2xl border-none bg-white shadow-sm text-sm font-bold focus:ring-4 focus:ring-indigo-50 outline-none transition-all" placeholder="ghp_****************" />
+                    </div>
+                    <div className="flex gap-4 pt-4">
+                       <button onClick={() => fetchFromGithub(githubUrl)} className="flex-1 py-4 bg-white text-slate-700 font-black text-xs rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all border border-slate-100 flex items-center justify-center gap-3"><RefreshCw size={16} /> TARIK DATA</button>
+                       <button onClick={uploadToGithub} className="flex-1 py-4 bg-indigo-600 text-white font-black text-xs rounded-2xl shadow-xl shadow-indigo-100 hover:shadow-indigo-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-3"><Send size={16} /> UNGGAH DATA</button>
+                    </div>
+                 </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Editing Drawer / Modal */}
+      {editing && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[110] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[3rem] shadow-4xl w-full max-w-xl p-10 animate-in zoom-in-95 duration-300">
+            <div className="flex items-center gap-4 mb-10">
+               <div className="w-1.5 h-10 bg-indigo-600 rounded-full"></div>
+               <h2 className="text-3xl font-black text-slate-800 tracking-tighter">Edit Layanan</h2>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Label Aplikasi</label>
+                <input type="text" value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-black focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Endpoint URL</label>
+                <input type="text" value={editing.url} onChange={e => setEditing({...editing, url: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+              </div>
+              <div className="space-y-3">
+                 <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Kategori</label>
+                 <div className="flex gap-3">
+                    {categories.map(c => (
+                       <button key={c.id} onClick={() => setEditing({...editing, category: c.id})} className={`flex-1 py-3.5 rounded-2xl text-[10px] font-black border-2 transition-all ${editing.category === c.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}>
+                          {c.label.toUpperCase()}
+                       </button>
+                    ))}
+                 </div>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Ringkasan Layanan</label>
+                <textarea value={editing.desc} onChange={e => setEditing({...editing, desc: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold h-28 resize-none focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+              </div>
+            </div>
+            <div className="mt-12 flex gap-4">
+              <button onClick={handleDeleteApp} className="px-8 py-4 text-rose-500 font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 rounded-2xl transition-all">Hapus</button>
+              <div className="flex-1"></div>
+              <button onClick={() => setEditing(null)} className="px-8 py-4 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 rounded-2xl transition-all">Batal</button>
+              <button onClick={() => { setApps(prev => prev.map(x => x.id === editing.id ? editing : x)); markAsDraft(); setEditing(null); }} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-slate-200 hover:bg-indigo-600 hover:scale-105 transition-all">Konfirmasi</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Global Confirmation Modal */}
+      {confirmAction && (
+        <ConfirmModal 
+          isOpen={!!confirmAction} 
+          title={confirmAction.title}
+          message={confirmAction.message}
+          onConfirm={confirmAction.onConfirm}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+      
+      {toast && <Toast message={toast.msg} type={toast.type} />}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.01em; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      `}</style>
+    </div>
+  );
+}
