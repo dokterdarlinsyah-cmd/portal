@@ -1,0 +1,194 @@
+{
+  "version": "1.27",
+  "apps": [
+    {
+      "id": 1,
+      "name": "Sistem E-Kinerja",
+      "desc": "Analisis produktivitas dan penilaian capaian kinerja bulanan.",
+      "category": "kepegawaian",
+      "icon": "Users",
+      "color": "from-blue-500 to-indigo-600",
+      "url": "https://google.com"
+    },
+    {
+      "id": 2,
+      "name": "Sistem Keuangan",
+      "desc": "Dashboard real-time realisasi anggaran dan transparansi fiskal.",
+      "category": "keuangan",
+      "icon": "CreditCard",
+      "color": "from-emerald-500 to-teal-600",
+      "url": "https://docs.google.com/spreadsheets/d/1kSuQH30Pr0rOhsRLWaEdikWrteLvpIFnaKDSfjLYlqo/edit?gid=0#gid=0"
+    },
+    {
+      "id": 3,
+      "name": "E-Surat Premium",
+      "desc": "Korespondensi digital dengan enkripsi tingkat tinggi.",
+      "category": "umum",
+      "icon": "Mail",
+      "color": "from-orange-400 to-rose-500",
+      "url": "https://drive.google.com/drive/u/1/folders/1TrGwnbRzJzbnwmT1HjmYqBzsOWC_tx9x"
+    },
+    {
+      "id": 4,
+      "name": "Smart Asset",
+      "desc": "Pelacakan aset daerah berbasis geospasial dan QR Code.",
+      "category": "umum",
+      "icon": "Database",
+      "color": "from-violet-500 to-purple-600",
+      "url": "#"
+    },
+    {
+      "id": 5,
+      "name": "Absensi Biometrik",
+      "desc": "Monitoring kehadiran pegawai melalui validasi wajah.",
+      "category": "kepegawaian",
+      "icon": "Calendar",
+      "color": "from-cyan-500 to-blue-600",
+      "url": "#"
+    },
+    {
+      "id": 6,
+      "name": "Digital Travel",
+      "desc": "Pengelolaan surat tugas dan akomodasi perjalanan dinas.",
+      "category": "umum",
+      "icon": "FileText",
+      "color": "from-slate-600 to-slate-800",
+      "url": "#"
+    },
+    {
+      "id": 1767604603697,
+      "name": "2023",
+      "desc": "Deskripsi.",
+      "category": "operation",
+      "icon": "Database",
+      "color": "from-blue-500 to-indigo-600",
+      "url": "#"
+    },
+    {
+      "id": 1767605000812,
+      "name": "2024",
+      "desc": "Deskripsi singkat.",
+      "category": "operation",
+      "icon": "LayoutGrid",
+      "color": "from-slate-700 to-slate-900",
+      "url": "#"
+    },
+    {
+      "id": 1767605269073,
+      "name": "2025",
+      "desc": "Deskripsi singkat.",
+      "category": "operation",
+      "icon": "LayoutGrid",
+      "color": "from-slate-700 to-slate-900",
+      "url": "#"
+    },
+    {
+      "id": 1767608171419,
+      "name": "2026",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "operation",
+      "icon": "LayoutGrid",
+      "color": "from-slate-800 to-slate-950",
+      "url": "#"
+    },
+    {
+      "id": 1767626273091,
+      "name": "Layanan Baru",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767622134401",
+      "icon": "LayoutGrid",
+      "color": "from-slate-800 to-slate-950",
+      "url": "#"
+    },
+    {
+      "id": 1767626977504,
+      "name": "Layanan Baru",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "umum",
+      "icon": "LayoutGrid",
+      "color": "from-slate-800 to-slate-950",
+      "url": "#"
+    },
+    {
+      "id": 1767626985315,
+      "name": "Layanan Baru",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "keuangan",
+      "icon": "LayoutGrid",
+      "color": "from-slate-800 to-slate-950",
+      "url": "#"
+    },
+    {
+      "id": 1767627853606,
+      "name": "2022",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "operation",
+      "icon": "LayoutGrid",
+      "color": "from-slate-800 to-slate-950",
+      "url": "https://drive.google.com/drive/folders/16xNbjmLMUEoBlr258sedZCvpVyVECm9m?usp=drive_link"
+    },
+    {
+      "id": 1767629847683,
+      "name": "Layanan Baru",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "operation",
+      "icon": "LayoutGrid",
+      "color": "from-slate-800 to-slate-950",
+      "url": "#"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat_1767622643094",
+      "label": "siip",
+      "icon": "LayoutGrid",
+      "desc": "Deskripsi kategori baru."
+    },
+    {
+      "id": "cat_1767622134401",
+      "label": "Akumah apa atuh",
+      "icon": "HelpCircle",
+      "desc": "Deskripsi kategori baru."
+    },
+    {
+      "id": "cat_1767622122699",
+      "label": "Tes Je Dulu",
+      "icon": "LayoutGrid",
+      "desc": "Deskripsi kategori baru."
+    },
+    {
+      "id": "kepegawaian",
+      "label": "Kepegawaian",
+      "icon": "Users",
+      "desc": "terbaik"
+    },
+    {
+      "id": "keuangan",
+      "label": "Keuangan",
+      "icon": "CreditCard"
+    },
+    {
+      "id": "umum",
+      "label": "Layanan Umum",
+      "icon": "Briefcase"
+    },
+    {
+      "id": "operation",
+      "label": "Operation Management",
+      "icon": "Cpu"
+    },
+    {
+      "id": "efficiency",
+      "label": "Efficiency Management",
+      "icon": "Zap",
+      "desc": "terbaik"
+    }
+  ],
+  "config": {
+    "githubUrl": "https://github.com/dokterdarlinsyah-cmd/portal",
+    "dashboardDesc": "Ekosistem aplikasi terpadu untuk mendukung produktivitas dan integrasi data perusahaan secara *real-time*.",
+    "appTitle": "Rendal Operasi         & Niaga",
+    "appLogo": "Sparkles",
+    "dashboardTitle": "Dashboard Utama"
+  }
+}
