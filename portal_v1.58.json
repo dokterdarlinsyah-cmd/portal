@@ -1,0 +1,295 @@
+{
+  "version": "1.58",
+  "apps": [
+    {
+      "id": 1,
+      "name": "Sistem E-Kinerja",
+      "desc": "Analisis produktivitas dan penilaian capaian kinerja bulanan.",
+      "category": "kepegawaian",
+      "icon": "Users",
+      "color": "from-blue-500 to-indigo-600",
+      "url": "https://google.com"
+    },
+    {
+      "id": 2,
+      "name": "Sistem Keuangan",
+      "desc": "Dashboard real-time realisasi anggaran dan transparansi fiskal.",
+      "category": "keuangan",
+      "icon": "CreditCard",
+      "color": "from-emerald-500 to-teal-600",
+      "url": "https://docs.google.com/spreadsheets/d/1kSuQH30Pr0rOhsRLWaEdikWrteLvpIFnaKDSfjLYlqo/edit?gid=0#gid=0"
+    },
+    {
+      "id": 3,
+      "name": "E-Surat Premium",
+      "desc": "Korespondensi digital dengan enkripsi tingkat tinggi.",
+      "category": "umum",
+      "icon": "Mail",
+      "color": "from-orange-400 to-rose-500",
+      "url": "https://drive.google.com/drive/u/1/folders/1TrGwnbRzJzbnwmT1HjmYqBzsOWC_tx9x"
+    },
+    {
+      "id": 4,
+      "name": "Smart Asset",
+      "desc": "Pelacakan aset daerah berbasis geospasial dan QR Code.",
+      "category": "umum",
+      "icon": "Database",
+      "color": "from-violet-500 to-purple-600",
+      "url": "#"
+    },
+    {
+      "id": 5,
+      "name": "Absensi Biometrik",
+      "desc": "Monitoring kehadiran pegawai melalui validasi wajah.",
+      "category": "kepegawaian",
+      "icon": "Calendar",
+      "color": "from-sky-500 to-indigo-500",
+      "url": "#"
+    },
+    {
+      "id": 6,
+      "name": "Digital Travel",
+      "desc": "Pengelolaan surat tugas dan akomodasi perjalanan dinas.",
+      "category": "umum",
+      "icon": "FileText",
+      "color": "from-slate-600 to-slate-800",
+      "url": "#"
+    },
+    {
+      "id": 1767604603697,
+      "name": "OM 2023",
+      "desc": "Deskripsi.",
+      "category": "operation",
+      "icon": "Database",
+      "color": "from-blue-500 to-indigo-600",
+      "url": "https://drive.google.com/drive/folders/1xeTlb-tH9obZgri1k0WvdiIL4GkUszQd?usp=drive_link"
+    },
+    {
+      "id": 1767605000812,
+      "name": "OM 2024",
+      "desc": "Deskripsi singkat.",
+      "category": "operation",
+      "icon": "Database",
+      "color": "from-blue-500 to-indigo-600",
+      "url": "https://drive.google.com/drive/folders/16cH8r5CIMVQkieAogr4hRLDoBksV1-JT?usp=drive_link"
+    },
+    {
+      "id": 1767605269073,
+      "name": "OM 2025",
+      "desc": "Deskripsi singkat.",
+      "category": "operation",
+      "icon": "Database",
+      "color": "from-blue-500 to-indigo-600",
+      "url": "https://drive.google.com/drive/folders/1KSNrhx33J0mK_GbR-mqokTWgx8R-tbQY?usp=drive_link"
+    },
+    {
+      "id": 1767608171419,
+      "name": "OM 2026",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "operation",
+      "icon": "Database",
+      "color": "from-blue-500 to-indigo-600",
+      "url": "#"
+    },
+    {
+      "id": 1767631786329,
+      "name": "Layanan Baru",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "umum",
+      "icon": "LayoutGrid",
+      "color": "from-slate-800 to-slate-950",
+      "url": "#"
+    },
+    {
+      "id": 1767660218671,
+      "name": "EM 2024",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "efficiency",
+      "icon": "LayoutGrid",
+      "color": "from-emerald-500 to-teal-600",
+      "url": "#"
+    },
+    {
+      "id": 1767660229514,
+      "name": "EM 2025",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "efficiency",
+      "icon": "LayoutGrid",
+      "color": "from-emerald-500 to-teal-600",
+      "url": "#"
+    },
+    {
+      "id": 1767660237771,
+      "name": "EM 2026",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "efficiency",
+      "icon": "LayoutGrid",
+      "color": "from-emerald-500 to-teal-600",
+      "url": "#"
+    },
+    {
+      "id": 1767661935036,
+      "name": "EM 2023",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "efficiency",
+      "icon": "LayoutGrid",
+      "color": "from-emerald-500 to-teal-600",
+      "url": "#"
+    },
+    {
+      "id": 1767668439777,
+      "name": "EM 2022",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "efficiency",
+      "icon": "LayoutGrid",
+      "color": "from-emerald-500 to-teal-600",
+      "url": "#"
+    },
+    {
+      "id": 1767671977977,
+      "name": "AMS",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767671964455",
+      "icon": "Monitor",
+      "color": "from-violet-500 to-purple-600",
+      "url": "https://amskorporat.pln.co.id/"
+    },
+    {
+      "id": 1767683192512,
+      "name": "Maximo",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767671964455",
+      "icon": "Monitor",
+      "color": "from-violet-500 to-purple-600",
+      "url": "http://maximo.plnnusantarapower.co.id/maximo/webclient/login/login.jsp?event=loadapp&value=sr&uisessionid=653&_tt=3hqbpf1o4neni2hle7rvj8aqur"
+    },
+    {
+      "id": 1767683250732,
+      "name": "COS",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767671964455",
+      "icon": "Monitor",
+      "color": "from-violet-500 to-purple-600",
+      "url": "https://cos.pln.co.id/dashboard"
+    },
+    {
+      "id": 1767683295565,
+      "name": "COC",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767671964455",
+      "icon": "Monitor",
+      "color": "from-violet-500 to-purple-600",
+      "url": "https://budaya.pln.co.id/"
+    },
+    {
+      "id": 1767683345325,
+      "name": "Email PLN",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767671964455",
+      "icon": "Monitor",
+      "color": "from-violet-500 to-purple-600",
+      "url": "https://webmail.pln.co.id/owa/auth/logon.aspx?replaceCurrent=1&url=https%3a%2f%2fwebmail.pln.co.id%2fowa%2f"
+    },
+    {
+      "id": 1767683394485,
+      "name": "Email NP",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767671964455",
+      "icon": "Monitor",
+      "color": "from-violet-500 to-purple-600",
+      "url": "https://mail.plnnusantarapower.co.id/webmail/"
+    },
+    {
+      "id": 1767683460277,
+      "name": "0. HELPDESK",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767671964455",
+      "icon": "Monitor",
+      "color": "from-slate-800 to-slate-950",
+      "url": "https://helpdesk.plnnusantarapower.co.id/pages/UI.php"
+    },
+    {
+      "id": 1767684421187,
+      "name": "1. EZIVIEW",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767671964455",
+      "icon": "Monitor",
+      "color": "from-orange-500 to-red-600",
+      "url": "eziview://"
+    },
+    {
+      "id": 1767684565915,
+      "name": "2022",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "operation",
+      "icon": "Database",
+      "color": "from-blue-500 to-indigo-600",
+      "url": "https://drive.google.com/drive/folders/16xNbjmLMUEoBlr258sedZCvpVyVECm9m?usp=drive_link"
+    },
+    {
+      "id": 1767687105765,
+      "name": "2. ZOOM",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "cat_1767671964455",
+      "icon": "Monitor",
+      "color": "from-orange-500 to-red-600",
+      "url": "https://us06web.zoom.us/j/84598609498?pwd=pGERr29IlaqFqGe60I6T5zf3bPLKtX.1#success"
+    },
+    {
+      "id": 1767690391287,
+      "name": "Layanan Baru",
+      "desc": "Masukkan deskripsi di sini.",
+      "category": "operation",
+      "icon": "LayoutGrid",
+      "color": "from-slate-800 to-slate-950",
+      "url": "#"
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat_1767671964455",
+      "label": "Website Aplikasi",
+      "icon": "Monitor",
+      "desc": "Deskripsi kategori baru."
+    },
+    {
+      "id": "kepegawaian",
+      "label": "Kepegawaian",
+      "icon": "Users",
+      "desc": "terbaik"
+    },
+    {
+      "id": "keuangan",
+      "label": "Keuangan",
+      "icon": "CreditCard"
+    },
+    {
+      "id": "umum",
+      "label": "Layanan Umum",
+      "icon": "Briefcase"
+    },
+    {
+      "id": "operation",
+      "label": "Operation Management",
+      "icon": "Cpu"
+    },
+    {
+      "id": "efficiency",
+      "label": "Efficiency Management",
+      "icon": "Zap",
+      "desc": "terbaik"
+    }
+  ],
+  "config": {
+    "githubUrl": "https://github.com/dokterdarlinsyah-cmd/portal",
+    "dashboardDesc": "Managemen aplikasi terpadu untuk mendukung produktivitas dan integrasi data perusahaan secara *real-time*.",
+    "appTitle": "Rendal Operasi         & Niaga",
+    "appLogo": "Sparkles",
+    "dashboardTitle": "Dashboard Utama",
+    "sortSettings": {
+      "efficiency": "za",
+      "operation": "za",
+      "cat_1767671964455": "az"
+    }
+  }
+}
