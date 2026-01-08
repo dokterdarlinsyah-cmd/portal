@@ -52,12 +52,75 @@ import {
   AlignLeft,
   AlertTriangle,
   Share2,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Command,
+  Hexagon,
+  Box,
+  Fingerprint,
+  Maximize2,
+  Minimize2,
+  ZoomIn,
+  ZoomOut,
+  Lock,
+  Unlock,
+  ArrowRight,
+  Radio, 
+  ToggleLeft, 
+  ToggleRight,
+  Clipboard,
+  ArrowDownAZ, 
+  ArrowUpAZ,   
+  CalendarDays,
+  ListFilter
 } from 'lucide-react';
 
 // --- ICON MAPPING ---
 const IconMap = {
-  Users, CreditCard, Mail, Database, Calendar, FileText, Monitor, Shield, HelpCircle, LayoutGrid, Briefcase, Settings, Bell, Cpu, Zap, Activity
+  Users, CreditCard, Mail, Database, Calendar, FileText, Monitor, Shield, HelpCircle, LayoutGrid, Briefcase, Settings, Bell, Cpu, Zap, Activity,
+  Sparkles, Command, Hexagon, Box, Cloud, Globe, Fingerprint, Layers
+};
+
+// --- HELPER: SORT CATEGORIES (Newest/Largest ID first) ---
+const sortCategoriesDesc = (cats) => {
+  if (!Array.isArray(cats)) return [];
+  return [...cats].sort((a, b) => {
+    const timeA = String(a.id).startsWith('cat_') ? parseInt(String(a.id).split('_')[1] || 0, 10) : 0;
+    const timeB = String(b.id).startsWith('cat_') ? parseInt(String(b.id).split('_')[1] || 0, 10) : 0;
+    return timeB - timeA;
+  });
+};
+
+// --- HELPER: SMART GOOGLE DRIVE LINK FIXER ---
+const getEmbedUrl = (url) => {
+  let targetUrl = url;
+  try {
+    if (targetUrl.includes('drive.google.com') || targetUrl.includes('docs.google.com') || targetUrl.includes('sheets.google.com') || targetUrl.includes('slides.google.com')) {
+       // CASE A: Google Drive FOLDERS
+       if (targetUrl.includes('/folders/')) {
+          const folderIdMatch = targetUrl.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+          if (folderIdMatch && folderIdMatch[1]) {
+             // Force list view for better embed experience
+             return `https://drive.google.com/embeddedfolderview?id=${folderIdMatch[1]}#list`;
+          }
+       }
+       // CASE B: Google Drive FILES (Documents, Spreadsheets, etc.)
+       else {
+           if (targetUrl.includes('/view')) {
+               return targetUrl.replace(/\/view[^/?#]*/, '/preview');
+           } else if (targetUrl.includes('/edit')) {
+               return targetUrl.replace(/\/edit[^/?#]*/, '/preview');
+           } else if (targetUrl.includes('/open')) {
+               const idMatch = targetUrl.match(/id=([a-zA-Z0-9_-]+)/);
+               if (idMatch && idMatch[1]) {
+                   return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+               }
+           }
+       }
+    }
+  } catch (e) {
+    console.warn("Gagal memproses URL Google", e);
+  }
+  return targetUrl;
 };
 
 // --- STORAGE HELPERS ---
@@ -114,16 +177,13 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
 };
 
 // --- APP CARD ---
-const AppCard = ({ app, onEdit, onNotify }) => {
+const AppCard = ({ app, onEdit, onOpen }) => {
   const IconComponent = IconMap[app.icon] || LayoutGrid;
   
-  const handleOpenLink = (e) => {
+  const handleClick = (e) => {
+    // Prevent opening if clicking edit button (Safety check)
     if (e.target.closest('.action-btn')) return;
-    if (app.url === '#' || !app.url) {
-      onNotify("Tautan layanan ini belum dikonfigurasi.");
-    } else {
-      window.open(app.url, '_blank', 'noopener,noreferrer');
-    }
+    onOpen(app);
   };
 
   const isOfficial = app.category === 'kepegawaian';
@@ -132,38 +192,57 @@ const AppCard = ({ app, onEdit, onNotify }) => {
 
   return (
     <div 
-      onClick={handleOpenLink}
-      className="group relative bg-white rounded-2xl p-3 transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-1 cursor-pointer flex flex-col h-full border border-slate-100/50 hover:border-white select-none overflow-hidden"
+      onClick={handleClick}
+      // PERUBAHAN: Menghapus 'hover:-translate-y-1' agar tidak naik turun.
+      // Menambahkan 'h-full' dan 'justify-between' untuk distribusi vertikal yang presisi.
+      className="group relative bg-white rounded-2xl p-3 transition-all duration-300 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.15)] cursor-pointer flex flex-col h-full border border-slate-100/80 hover:border-indigo-100/50 select-none overflow-hidden"
     >
-      <div className={`relative aspect-[4/3] w-full rounded-xl bg-gradient-to-br ${app.color} flex items-center justify-center overflow-hidden shadow-inner transition-shadow duration-500`}>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-white/20 blur-2xl rounded-full group-hover:scale-150 transition-transform duration-700"></div>
-        <div className="relative z-10 text-white drop-shadow-sm transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 ease-out">
-          <IconComponent size={40} strokeWidth={1.5} />
+      <div className={`relative aspect-[4/3] w-full rounded-xl bg-gradient-to-br ${app.color} flex items-center justify-center overflow-hidden shadow-sm transition-shadow duration-500`}>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-white/20 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700"></div>
+        <div className="relative z-10 text-white drop-shadow-md transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 ease-out">
+          <IconComponent size={42} strokeWidth={1.5} />
         </div>
+        
+        {/* FIXED EDIT BUTTON: Transparent White (Glassmorphism), High Z-Index, Stop Propagation */}
         <button 
-          onClick={(e) => { e.stopPropagation(); onEdit(app); }} 
-          className="action-btn absolute top-2 right-2 p-2 bg-white/20 backdrop-blur-md text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-white hover:text-slate-900 shadow-sm"
+          onClick={(e) => { 
+            e.preventDefault(); 
+            e.stopPropagation();
+            if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+            onEdit(app); 
+          }} 
+          className="action-btn absolute top-2 right-2 p-2 bg-white/20 backdrop-blur-md text-white rounded-full shadow-sm z-30 opacity-0 group-hover:opacity-100 hover:bg-white hover:text-indigo-600 hover:scale-110 transition-all duration-200 border border-white/20"
+          title="Edit Layanan"
         >
-          <Pencil size={12} />
+          <Pencil size={14} />
         </button>
       </div>
 
-      <div className="pt-3 px-1 flex flex-col flex-1">
+      <div className="pt-4 px-1 flex flex-col flex-1">
         <div className="flex items-center gap-2 mb-2">
-           <span className={`inline-flex items-center gap-1 ${badgeColor} text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter`}>
+           <span className={`inline-flex items-center gap-1.5 ${badgeColor} text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider`}>
              {badgeIcon} {isOfficial ? 'Official' : 'Featured'}
            </span>
         </div>
-        <h3 className="text-sm font-bold text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors line-clamp-2">
-          {app.name}
-        </h3>
-        <p className="text-[10px] text-slate-400 font-medium line-clamp-2 mt-1.5 leading-relaxed">
-          {app.desc || "Tidak ada deskripsi tersedia untuk layanan ini."}
-        </p>
-        <div className="mt-auto pt-4">
-           <div className="w-full py-2.5 rounded-xl bg-slate-50 text-slate-500 text-[10px] font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
-              <span>Buka Layanan</span> 
-              <ChevronRight size={10} />
+        
+        {/* PERUBAHAN: Menambahkan 'h-10' (Fixed Height) pada judul agar tingginya selalu konsisten (muat 2 baris) */}
+        <div className="h-10 mb-1">
+          <h3 className="text-sm font-bold text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors line-clamp-2">
+            {app.name}
+          </h3>
+        </div>
+
+        {/* PERUBAHAN: Menambahkan 'h-8' (Fixed Height) pada deskripsi agar tingginya selalu konsisten */}
+        <div className="h-8 mb-3">
+          <p className="text-[11px] text-slate-400 font-medium line-clamp-2 leading-relaxed tracking-wide">
+            {app.desc || "Tidak ada deskripsi tersedia untuk layanan ini."}
+          </p>
+        </div>
+
+        <div className="mt-auto">
+           <div className="w-full py-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-500 text-[10px] font-bold group-hover:bg-indigo-600 group-hover:border-indigo-600 group-hover:text-white transition-all duration-300 flex items-center justify-center gap-2 shadow-sm group-hover:shadow-indigo-200">
+              <span>AKSES LAYANAN</span> 
+              <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
            </div>
         </div>
       </div>
@@ -175,11 +254,29 @@ export default function App() {
   const [activeVersion, setActiveVersion] = useState(() => getStorage('portal_active_version_v3', '1.0'));
   const [history, setHistory] = useState(() => getStorage('portal_history_v3', []));
   const [apps, setApps] = useState(() => getStorage('portal_apps_v3', INITIAL_APPS));
-  const [categories, setCategories] = useState(() => getStorage('portal_categories_v3', INITIAL_CATEGORIES));
+  const [categories, setCategories] = useState(() => {
+    const stored = getStorage('portal_categories_v3', INITIAL_CATEGORIES);
+    return sortCategoriesDesc(stored);
+  });
+  
   const [dashboardDesc, setDashboardDesc] = useState(() => getStorage('portal_dashboard_desc_v3', DEFAULT_DASHBOARD_DESC));
+  const [appTitle, setAppTitle] = useState(() => getStorage('portal_app_title_v3', 'Portal.Net'));
+  const [appLogo, setAppLogo] = useState(() => getStorage('portal_app_logo_v3', 'Sparkles'));
+  const [dashboardTitle, setDashboardTitle] = useState(() => getStorage('portal_dashboard_title_v3', 'Dashboard Utama'));
   
   const [githubUrl, setGithubUrl] = useState(() => localStorage.getItem('portal_github_sync_url') || 'https://github.com/dokterdarlinsyah-cmd/portal');
-  const [githubToken, setGithubToken] = useState(() => localStorage.getItem('portal_github_token') || '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');
+  const [githubToken, setGithubToken] = useState(() => localStorage.getItem('portal_github_token') || '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');
+  
+  // -- AUTH STATES --
+  const [isUploadAuthorized, setIsUploadAuthorized] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authInput, setAuthInput] = useState('');
+
+  // -- AUTOMATION & CONFIG STATES --
+  const [autoSync, setAutoSync] = useState(() => getStorage('portal_auto_sync_v3', true));
+  
+  // sortSettings sekarang berupa Objek { categoryId: 'sortType' }
+  const [sortSettings, setSortSettings] = useState(() => getStorage('portal_sort_settings_v4', {})); 
 
   const [selectedCat, setSelectedCat] = useState('all');
   const [search, setSearch] = useState('');
@@ -188,14 +285,51 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
-  // Custom Confirmation State
-  const [confirmAction, setConfirmAction] = useState(null); // { title, message, onConfirm }
+  // --- MULTI-TAB SYSTEM STATES ---
+  const [activeTabId, setActiveTabId] = useState('dashboard');
+  const [openTabs, setOpenTabs] = useState([]);
+
+  // State untuk Icon Picker Visual
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [activeCatIconPicker, setActiveCatIconPicker] = useState(null);
+  const [showLogoPicker, setShowLogoPicker] = useState(false);
   
+  // State untuk Sort Menu
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  
+  const touchStartDist = useRef(0);
+
+  useEffect(() => {
+     if (!editing) setShowIconPicker(false);
+  }, [editing]);
+  
+  const [confirmAction, setConfirmAction] = useState(null);
   const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef(null);
 
-  // --- INIT: LOAD DATA FROM URL (SHARE FEATURE - ROBUST DECODING & UI STATE RESTORE) ---
+  // --- AUTO-SYNC LOGIC (THE BOT BEHAVIOR) ---
+  useEffect(() => {
+    let interval;
+    if (autoSync && githubUrl) {
+      // Fetch immediately on enable
+      fetchFromGithub(githubUrl, true);
+      // Then set interval (e.g., every 60 seconds)
+      interval = setInterval(() => {
+        console.log("Auto-Sync: Fetching data...");
+        fetchFromGithub(githubUrl, true); // Silent mode
+      }, 60000); 
+    }
+    return () => clearInterval(interval);
+  }, [autoSync, githubUrl]);
+
+  // Persist AutoSync & Sort Settings
+  useEffect(() => {
+    saveToStorage('portal_auto_sync_v3', autoSync);
+    saveToStorage('portal_sort_settings_v4', sortSettings);
+  }, [autoSync, sortSettings]);
+
+  // --- INIT ---
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) setSidebarOpen(false);
@@ -204,14 +338,11 @@ export default function App() {
     handleResize();
     window.addEventListener('resize', handleResize);
 
-    // Check for shared data in URL
     const params = new URLSearchParams(window.location.search);
     const sharedData = params.get('data');
     
     if (sharedData) {
       try {
-        // Robust decoding: Base64 -> decodeURIComponent -> JSON parse
-        // Ini menangani karakter khusus (UTF-8) dengan aman
         const decodedString = decodeURIComponent(atob(sharedData).split('').map(function(c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
@@ -219,29 +350,27 @@ export default function App() {
         const decoded = JSON.parse(decodedString);
 
         if (decoded.apps && decoded.categories) {
-          // Restore Data Utama
           setApps(decoded.apps);
-          setCategories(decoded.categories);
-          
-          // Restore Konfigurasi Global
-          if (decoded.dashboardDesc) setDashboardDesc(decoded.dashboardDesc);
-          if (decoded.githubUrl) setGithubUrl(decoded.githubUrl);
-          if (decoded.githubToken) setGithubToken(decoded.githubToken);
+          setCategories(sortCategoriesDesc(decoded.categories));
+          if (decoded.config) {
+             if (decoded.config.githubUrl) setGithubUrl(decoded.config.githubUrl);
+             if (decoded.config.dashboardDesc) setDashboardDesc(decoded.config.dashboardDesc);
+             if (decoded.config.appTitle) setAppTitle(decoded.config.appTitle);
+             if (decoded.config.appLogo) setAppLogo(decoded.config.appLogo);
+             if (decoded.config.dashboardTitle) setDashboardTitle(decoded.config.dashboardTitle);
+             // Restore Sort Settings from Config (Cloud)
+             if (decoded.config.sortSettings) setSortSettings(decoded.config.sortSettings);
+          }
           if (decoded.activeVersion) setActiveVersion(decoded.activeVersion);
           
-          // Restore UI State (Agar tampilan 100% sama persis)
           if (decoded.uiState) {
              if (decoded.uiState.selectedCat) setSelectedCat(decoded.uiState.selectedCat);
              if (decoded.uiState.search) setSearch(decoded.uiState.search);
-             // Kita bisa memaksa sidebar terbuka/tutup sesuai snapshot, tapi tetap hormati ukuran layar mobile
              if (window.innerWidth >= 1024 && typeof decoded.uiState.sidebarOpen !== 'undefined') {
                 setSidebarOpen(decoded.uiState.sidebarOpen);
              }
           }
-          
           showToast("Snapshot dashboard berhasil dipulihkan!", "success");
-          
-          // Clean URL agar tidak dimuat ulang saat refresh
           const newUrl = window.location.pathname;
           window.history.replaceState({}, document.title, newUrl);
         }
@@ -310,11 +439,17 @@ export default function App() {
       const data = await dataRes.json();
       if (data.apps && data.categories) {
         setApps(data.apps);
-        setCategories(data.categories);
-        // Restore konfigurasi URL dan Deskripsi jika ada
+        setCategories(sortCategoriesDesc(data.categories));
         if (data.config) {
             if (data.config.githubUrl) setGithubUrl(data.config.githubUrl);
             if (data.config.dashboardDesc) setDashboardDesc(data.config.dashboardDesc);
+            if (data.config.appTitle) setAppTitle(data.config.appTitle);
+            if (data.config.appLogo) setAppLogo(data.config.appLogo);
+            if (data.config.dashboardTitle) setDashboardTitle(data.config.dashboardTitle);
+            // Restore Sort Settings from Cloud Config
+            if (data.config.sortSettings) {
+               setSortSettings(data.config.sortSettings);
+            }
         }
         setActiveVersion(latest.versionValue !== "0" ? latest.versionValue : activeVersion);
         if (!silent) showToast(`Data Sinkron: ${latest.name}`);
@@ -326,7 +461,7 @@ export default function App() {
     }
   };
 
-  const uploadToGithub = async () => {
+  const performUpload = async () => {
     if (!githubToken) {
       showToast("Token diperlukan.", "warning");
       setShowSettings(true);
@@ -340,8 +475,8 @@ export default function App() {
       const fileName = `portal_v${nextVersion}.json`;
       const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
       
-      // Menyertakan konfigurasi (URL & Deskripsi) dalam data yang dikirim
-      const config = { githubUrl, dashboardDesc }; 
+      // INCLUDE SORT SETTINGS IN CONFIG
+      const config = { githubUrl, dashboardDesc, appTitle, appLogo, dashboardTitle, sortSettings }; 
       const content = btoa(JSON.stringify({ version: nextVersion, apps, categories, config }, null, 2));
       
       const getFileRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`, {
@@ -376,6 +511,26 @@ export default function App() {
     }
   };
 
+  const initiateUpload = () => {
+    if (isUploadAuthorized) {
+      performUpload();
+    } else {
+      setShowAuthModal(true);
+    }
+  };
+
+  const handleAuthSubmit = () => {
+    if (btoa(authInput) === 'cGxu') {
+      setIsUploadAuthorized(true);
+      setShowAuthModal(false);
+      setAuthInput('');
+      performUpload();
+      showToast("Akses Diterima");
+    } else {
+      showToast("Kode Otorisasi Salah!", "error");
+    }
+  };
+
   useEffect(() => { fetchFromGithub(githubUrl, true); }, []);
 
   useEffect(() => {
@@ -383,17 +538,19 @@ export default function App() {
     saveToStorage('portal_categories_v3', categories);
     saveToStorage('portal_history_v3', history);
     saveToStorage('portal_dashboard_desc_v3', dashboardDesc);
+    saveToStorage('portal_app_title_v3', appTitle);
+    saveToStorage('portal_app_logo_v3', appLogo);
+    saveToStorage('portal_dashboard_title_v3', dashboardTitle);
     localStorage.setItem('portal_active_version_v3', activeVersion);
     localStorage.setItem('portal_github_sync_url', githubUrl);
     localStorage.setItem('portal_github_token', githubToken);
-  }, [apps, categories, history, activeVersion, githubUrl, githubToken, dashboardDesc]);
+  }, [apps, categories, history, activeVersion, githubUrl, githubToken, dashboardDesc, appTitle, appLogo, dashboardTitle]);
 
   const markAsDraft = () => { if (!activeVersion.includes('*')) setActiveVersion(activeVersion + "*"); };
 
   const handleSaveVersion = () => {
     const nextVersion = incrementVersion(activeVersion);
-    // Sertakan config dalam riwayat lokal juga
-    const config = { githubUrl, dashboardDesc };
+    const config = { githubUrl, dashboardDesc, appTitle, appLogo, dashboardTitle, sortSettings };
     const newEntry = { 
       id: Date.now(), 
       name: nextVersion, 
@@ -407,8 +564,7 @@ export default function App() {
 
   const handleExportJSON = () => {
     const cleanVersion = activeVersion.replace('*', '');
-    // Sertakan config dalam file ekspor
-    const config = { githubUrl, dashboardDesc };
+    const config = { githubUrl, dashboardDesc, appTitle, appLogo, dashboardTitle, sortSettings };
     const dataStr = JSON.stringify({ version: cleanVersion, apps, categories, config }, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     const link = document.createElement('a');
@@ -417,60 +573,45 @@ export default function App() {
     link.click();
   };
 
-  // --- SHARE FUNCTION (FIXED: ROBUST FULL STATE SNAPSHOT) ---
   const handleShare = () => {
     try {
-      // 1. Prepare FULL data payload termasuk UI STATE
       const sharePayload = {
         apps,
         categories,
         dashboardDesc,
-        githubUrl,    // Disertakan: URL Repo
-        githubToken,  // Disertakan: Token (Sensitif)
+        appTitle,
+        appLogo,
+        dashboardTitle,
+        githubUrl,
+        githubToken,
         activeVersion,
-        uiState: {    // Menyimpan state Tampilan agar "persis sama"
+        uiState: {
            selectedCat,
            search,
            sidebarOpen
+        },
+        config: {
+           githubUrl,
+           dashboardDesc,
+           appTitle,
+           appLogo,
+           dashboardTitle,
+           sortSettings
         }
       };
       
-      // 2. Encode to Base64 with UTF-8 support
-      // Teknik ini memastikan emoji/karakter khusus tidak merusak tautan
       const jsonString = JSON.stringify(sharePayload);
       const encodedData = btoa(encodeURIComponent(jsonString).replace(/%([0-9A-F]{2})/g,
           function toSolidBytes(match, p1) {
               return String.fromCharCode('0x' + p1);
       }));
       
-      // 3. Construct URL
       const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
 
-      // 4. Copy to clipboard (Robust Fallback Method)
-      const copyToClipboardFallback = (text) => {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed"; // Avoid scrolling to bottom
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-          const successful = document.execCommand('copy');
-          if (successful) showToast("Tautan snapshot lengkap disalin!");
-          else showToast("Gagal menyalin tautan.", "error");
-        } catch (err) {
-          showToast("Browser tidak mendukung salin otomatis.", "error");
-        }
-        document.body.removeChild(textArea);
-      };
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shareUrl)
-          .then(() => showToast("Tautan snapshot lengkap disalin!"))
-          .catch(() => copyToClipboardFallback(shareUrl));
+      if (copyToClipboard(shareUrl)) {
+        showToast("Tautan snapshot lengkap disalin!");
       } else {
-        copyToClipboardFallback(shareUrl);
+        showToast("Gagal menyalin tautan.", "error");
       }
 
     } catch (error) {
@@ -479,11 +620,10 @@ export default function App() {
     }
   };
 
-  // --- KATEGORI MANAGEMEN ---
   const addCategory = () => {
     const newId = 'cat_' + Date.now();
     const newCat = { id: newId, label: 'Kategori Baru', icon: 'LayoutGrid', desc: 'Deskripsi kategori baru.' };
-    setCategories([...categories, newCat]);
+    setCategories([newCat, ...categories]);
     markAsDraft();
     showToast("Kategori ditambahkan");
   };
@@ -504,17 +644,12 @@ export default function App() {
     markAsDraft();
   };
 
-  // --- FUNGSI HAPUS KATEGORI BARU (SAFE MODAL) ---
   const deleteCategory = (id) => {
-    // 1. Cek apakah ada layanan yang menggunakan kategori ini
     const relatedApps = apps.filter(a => a.category === id);
-    
     if (relatedApps.length > 0) {
       showToast(`Gagal: Masih ada ${relatedApps.length} layanan aktif di sini.`, "error");
       return;
     }
-
-    // 2. Trigger Custom Modal
     setConfirmAction({
       title: "Hapus Kategori?",
       message: "Kategori ini akan dihapus permanen. Pastikan tidak ada data penting yang hilang.",
@@ -527,10 +662,8 @@ export default function App() {
     });
   };
 
-  // --- FUNGSI HAPUS LAYANAN BARU (SAFE MODAL) ---
   const handleDeleteApp = () => {
     if (!editing) return;
-    
     setConfirmAction({
       title: "Hapus Layanan?",
       message: `Anda akan menghapus layanan "${editing.name}". Tindakan ini tidak dapat dibatalkan.`,
@@ -544,8 +677,210 @@ export default function App() {
     });
   };
 
-  const filtered = apps.filter(a => (selectedCat === 'all' || a.category === selectedCat) && a.name.toLowerCase().includes(search.toLowerCase()));
+  const handleOpenApp = (app) => {
+    if (!app.url || app.url === '#') {
+      showToast("Tautan layanan ini belum dikonfigurasi.", "warning");
+      return;
+    }
+
+    // --- DETEKSI PATH LOKAL (C:\...) YANG DIBLOKIR BROWSER ---
+    // Browser modern memblokir akses langsung ke file lokal demi keamanan.
+    if (app.url.match(/^[a-zA-Z]:\\/) || app.url.startsWith('file://')) {
+       // Tampilkan pesan edukasi yang jelas
+       alert(
+         "⛔ AKSES DITOLAK BROWSER\n\n" +
+         "Browser tidak mengizinkan akses langsung ke file lokal (C:\\...).\n" +
+         "Solusi: Anda harus membuat 'Custom URI Scheme' di Windows Registry agar bisa dipanggil via protokol (misal: eziview://)."
+       );
+       return; 
+    }
+
+    // --- LOGIKA BARU: MEMBUKA APLIKASI PC (CUSTOM PROTOCOL) ---
+    // Jika tidak dimulai dengan http/https, dianggap sebagai aplikasi lokal
+    // Contoh: "calculator:", "ms-settings:", "zoommtg://", "edmi://"
+    if (!app.url.startsWith('http://') && !app.url.startsWith('https://')) {
+       try {
+           // PERBAIKAN: Gunakan window.open('_blank') agar stabil memicu protokol
+           // DAN HAPUS LOGIKA AUTO-CLOSE agar dialog aplikasi sempat muncul.
+           const newWindow = window.open(app.url, '_blank');
+           
+           if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+               showToast("Popup diblokir! Izinkan pop-up agar aplikasi bisa terbuka.", "warning");
+           } else {
+               showToast(`Meluncurkan aplikasi lokal: ${app.name}`, "info");
+               // Kita biarkan tab terbuka agar proses hand-off ke OS berhasil
+           }
+       } catch (e) {
+           showToast("Gagal memanggil protokol. Pastikan sudah terdaftar di PC.", "error");
+       }
+       return;
+    }
+
+    // --- LOGIKA UNTUK WEBSITE / WEB APPS ---
+
+    // 1. CEK GOOGLE APPS (Embed di dalam Tab Aplikasi)
+    const isGoogle = app.url.includes('drive.google.com') || 
+                     app.url.includes('docs.google.com') || 
+                     app.url.includes('sheets.google.com') || 
+                     app.url.includes('slides.google.com');
+
+    if (isGoogle) {
+        // Auto-fix url initially
+        const targetUrl = getEmbedUrl(app.url);
+        if (app.url.includes('google.com')) {
+           showToast("Info: Jika sub-folder terbuka di tab baru, copy linknya dan paste di sini.", "info");
+        }
+        const isOpen = openTabs.find(t => t.id === app.id);
+        if (!isOpen) {
+          setOpenTabs([...openTabs, { ...app, url: targetUrl, zoom: 1 }]);
+        }
+        setActiveTabId(app.id);
+        return; // SELESAI, Masuk Tab
+    }
+
+    // 2. CEK WEBSITE LAIN (Buka di Browser Langsung / Tab Baru)
+    // Untuk semua website non-Google (publik atau lokal)
+    try {
+        window.open(app.url, '_blank');
+        showToast(`Membuka: ${app.name}`, "info");
+    } catch (e) {
+        showToast("Gagal membuka tautan. Pastikan pop-up diizinkan.", "error");
+    }
+  };
+
+  const closeTab = (e, tabId) => {
+    e.stopPropagation();
+    const newTabs = openTabs.filter(t => t.id !== tabId);
+    setOpenTabs(newTabs);
+    
+    if (activeTabId === tabId) {
+      if (newTabs.length > 0) {
+        setActiveTabId(newTabs[newTabs.length - 1].id);
+      } else {
+        setActiveTabId('dashboard');
+      }
+    }
+  };
+
+  const updateTabZoom = (tabId, delta, absoluteValue = null) => {
+    setOpenTabs(prevTabs => prevTabs.map(tab => {
+      if (tab.id === tabId) {
+        let newZoom = absoluteValue !== null ? absoluteValue : tab.zoom + delta;
+        newZoom = Math.min(Math.max(newZoom, 0.5), 3.0);
+        return { ...tab, zoom: newZoom };
+      }
+      return tab;
+    }));
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      );
+      touchStartDist.current = dist;
+    }
+  };
+
+  const handleTouchMove = (e, tabId, currentZoom) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      );
+      
+      if (touchStartDist.current > 0) {
+        const delta = dist - touchStartDist.current;
+        if (Math.abs(delta) > 20) {
+           const zoomChange = delta > 0 ? 0.05 : -0.05;
+           updateTabZoom(tabId, zoomChange);
+           touchStartDist.current = dist; 
+        }
+      }
+    }
+  };
+
+  const handleUrlChange = (tabId, newUrl) => {
+    setOpenTabs(prev => prev.map(t => t.id === tabId ? { ...t, url: newUrl } : t));
+  };
+
+  // --- SMART PASTE HANDLER ---
+  const handlePasteAndFix = async (tabId) => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        const targetUrl = getEmbedUrl(text);
+        handleUrlChange(tabId, targetUrl);
+        
+        // Force reload iframe
+        setTimeout(() => {
+          const iframe = document.getElementById(`iframe-${tabId}`);
+          if(iframe) iframe.src = targetUrl;
+        }, 100);
+        
+        showToast("URL berhasil ditempel dan diperbaiki!");
+      }
+    } catch (err) {
+      showToast("Gagal membaca clipboard. Pastikan izin diberikan.", "error");
+    }
+  };
+
+  const handleManualNavigate = (e, tabId, urlInput) => {
+    e.preventDefault();
+    const targetUrl = getEmbedUrl(urlInput);
+    handleUrlChange(tabId, targetUrl);
+    setTimeout(() => {
+        const iframe = document.getElementById(`iframe-${tabId}`);
+        if(iframe) iframe.src = targetUrl;
+    }, 100);
+  };
+  
+  // --- SET SORT FOR CURRENT CATEGORY ---
+  const handleSetSort = (order) => {
+    setSortSettings(prev => ({ ...prev, [selectedCat]: order }));
+    markAsDraft(); // Tandai ada perubahan untuk disimpan
+  };
+
+  // --- FILTER & SORT LOGIC (PER CATEGORY) ---
+  const filtered = apps
+    .filter(a => (selectedCat === 'all' || a.category === selectedCat) && a.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+       // Ambil sort order untuk kategori aktif, default 'hybrid'
+       const activeSortOrder = sortSettings[selectedCat] || 'hybrid';
+       
+       switch (activeSortOrder) {
+         case 'az': 
+           return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+         case 'za': 
+           return b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' });
+         case 'newest': 
+           return b.id - a.id;
+         case 'oldest': 
+           return a.id - b.id;
+         case 'hybrid':
+         default:
+           // Hybrid: Huruf (A-Z) dulu, baru Angka (9-0)
+           const isNumA = /^\d/.test(a.name);
+           const isNumB = /^\d/.test(b.name);
+
+           if (isNumA && isNumB) {
+             // Keduanya Angka: Urutkan Besar ke Kecil (9-0)
+             return b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' });
+           }
+           
+           if (!isNumA && !isNumB) {
+             // Keduanya Teks: Urutkan A-Z
+             return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+           }
+
+           // Campuran: Teks (isNum=false) duluan (-1), Angka (isNum=true) belakangan (1)
+           return isNumA ? 1 : -1;
+       }
+    });
+
   const currentCategoryDesc = selectedCat === 'all' ? dashboardDesc : categories.find(c => c.id === selectedCat)?.desc || "";
+  const currentSortLabel = sortSettings[selectedCat] || 'hybrid';
 
   return (
     <div className="flex h-screen bg-[#FDFDFD] text-slate-900 font-sans overflow-hidden">
@@ -557,11 +892,15 @@ export default function App() {
           try {
             const json = JSON.parse(ev.target.result);
             if (json.apps && json.categories) {
-              setApps(json.apps); setCategories(json.categories);
-              // Pulihkan konfigurasi dari file impor
+              setApps(json.apps); setCategories(sortCategoriesDesc(json.categories));
               if (json.config) {
                  if (json.config.githubUrl) setGithubUrl(json.config.githubUrl);
                  if (json.config.dashboardDesc) setDashboardDesc(json.config.dashboardDesc);
+                 if (json.config.appTitle) setAppTitle(json.config.appTitle);
+                 if (json.config.appLogo) setAppLogo(json.config.appLogo);
+                 if (json.config.dashboardTitle) setDashboardTitle(json.config.dashboardTitle);
+                 // Restore Sort Settings from file
+                 if (json.config.sortSettings) setSortSettings(json.config.sortSettings);
               }
               if (json.version) setActiveVersion(json.version + "*");
               showToast("Data Diimpor!");
@@ -584,19 +923,24 @@ export default function App() {
         fixed inset-y-4 left-4 rounded-[2.5rem] bg-white border border-slate-100 flex flex-col transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] z-50 shadow-[0_10px_50px_rgba(0,0,0,0.03)]
         ${sidebarOpen ? 'w-[280px] translate-x-0' : 'w-[90px] -translate-x-[200%] md:translate-x-0'}
       `}>
-        <div className="h-28 flex items-center justify-center shrink-0 relative">
-          <div className="flex items-center gap-4">
-            <div className="relative w-11 h-11 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-100 transform rotate-3">
-               <Sparkles size={22} fill="currentColor" />
+        <div className="h-28 flex items-center justify-center shrink-0 relative px-2">
+          <div className="flex items-center gap-3">
+            <div className="relative shrink-0 w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-xl shadow-indigo-100 transform rotate-3">
+               {React.createElement(IconMap[appLogo] || Sparkles, { size: 20, fill: "currentColor" })}
             </div>
             {sidebarOpen && (
-              <div className="flex flex-col">
-                <span className="text-xl font-black tracking-tighter text-slate-800">Portal<span className="text-indigo-600">.Net</span></span>
-                <span className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em]">Enterprise System</span>
+              <div className="flex flex-col justify-center">
+                <span className="text-base font-extrabold tracking-tight leading-4 text-slate-800 max-w-[160px] text-left break-words">
+                   {appTitle.includes('.') ? (
+                      <>{appTitle.substring(0, appTitle.lastIndexOf('.'))}<span className="text-indigo-600">{appTitle.substring(appTitle.lastIndexOf('.'))}</span></>
+                   ) : (
+                      appTitle
+                   )}
+                </span>
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.15em] mt-1 text-left">Enterprise System</span>
               </div>
             )}
           </div>
-          {/* TOMBOL TUTUP KHUSUS MOBILE */}
           <button 
             onClick={() => setSidebarOpen(false)}
             className={`md:hidden absolute right-5 top-1/2 -translate-y-1/2 p-2 bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all ${!sidebarOpen && 'hidden'}`}
@@ -606,7 +950,7 @@ export default function App() {
         </div>
         
         <div className="flex-1 px-5 py-2 space-y-2 overflow-y-auto custom-scrollbar">
-          <button onClick={() => setSelectedCat('all')} className={`w-full flex items-center p-4 rounded-2xl transition-all duration-500 group ${selectedCat === 'all' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>
+          <button onClick={() => { setActiveTabId('dashboard'); setSelectedCat('all'); }} className={`w-full flex items-center p-4 rounded-2xl transition-all duration-500 group ${selectedCat === 'all' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>
             <LayoutGrid size={22} />
             {sidebarOpen && <span className="ml-4 text-sm font-bold">Semua Aplikasi</span>}
           </button>
@@ -614,7 +958,7 @@ export default function App() {
           <div className="pt-8 pb-4">
             <p className={`px-5 mb-4 text-[9px] font-black text-slate-200 uppercase tracking-[0.3em] ${!sidebarOpen && 'hidden'}`}>Kategori Layanan</p>
             {categories.map(c => (
-              <button key={c.id} onClick={() => setSelectedCat(c.id)} className={`w-full flex items-center p-4 rounded-2xl transition-all duration-500 mb-1 ${selectedCat === c.id ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>
+              <button key={c.id} onClick={() => { setActiveTabId('dashboard'); setSelectedCat(c.id); }} className={`w-full flex items-center p-4 rounded-2xl transition-all duration-500 mb-1 ${selectedCat === c.id ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>
                 {React.createElement(IconMap[c.icon] || Briefcase, { size: 22 })}
                 {sidebarOpen && <span className="ml-4 text-sm font-bold line-clamp-1">{c.label}</span>}
               </button>
@@ -640,7 +984,7 @@ export default function App() {
       <main className={`flex-1 flex flex-col min-w-0 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${sidebarOpen ? 'ml-0 md:ml-[315px]' : 'ml-0 md:ml-[120px]'}`}>
         
         {/* Header Glassmorphism */}
-        <header className="px-8 py-6 sticky top-0 z-40">
+        <header className="px-8 pt-6 pb-2 sticky top-0 z-40">
            <div className="bg-white/80 backdrop-blur-2xl border border-white/40 rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.03)] px-8 py-4 flex items-center justify-between gap-8">
               <div className="flex items-center gap-6 flex-1">
                 <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-3 bg-slate-50 hover:bg-white rounded-2xl text-slate-400 hover:text-slate-800 transition-all shadow-sm"><Menu size={20} /></button>
@@ -654,11 +998,54 @@ export default function App() {
                     value={search} 
                     onChange={(e) => setSearch(e.target.value)} 
                   />
+                  
+                  {/* SORT DROPDOWN (UPDATED: PER-CATEGORY SORT) */}
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <button 
+                      onClick={() => setShowSortMenu(!showSortMenu)}
+                      className="p-1.5 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
+                      title={`Urutkan: ${currentSortLabel}`}
+                    >
+                      {currentSortLabel === 'az' ? <ArrowDownAZ size={16} /> : 
+                       currentSortLabel === 'za' ? <ArrowUpAZ size={16} /> :
+                       currentSortLabel === 'newest' ? <Clock size={16} /> :
+                       currentSortLabel === 'oldest' ? <History size={16} /> :
+                       <ListFilter size={16} /> 
+                      }
+                    </button>
+                    {/* Sort Menu Popup */}
+                    {showSortMenu && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)}></div>
+                        <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                          <div className="px-4 py-3 border-b border-slate-50 bg-slate-50/50">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Urutkan</span>
+                          </div>
+                          <div className="p-1">
+                            <button onClick={() => { handleSetSort('hybrid'); setShowSortMenu(false); }} className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-3 ${currentSortLabel === 'hybrid' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                              <LayoutGrid size={14} /> Default (Teks A-Z, Angka 9-0)
+                            </button>
+                            <button onClick={() => { handleSetSort('az'); setShowSortMenu(false); }} className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-3 ${currentSortLabel === 'az' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                              <ArrowDownAZ size={14} /> Nama (A-Z)
+                            </button>
+                            <button onClick={() => { handleSetSort('za'); setShowSortMenu(false); }} className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-3 ${currentSortLabel === 'za' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                              <ArrowUpAZ size={14} /> Nama (Z-A)
+                            </button>
+                            <button onClick={() => { handleSetSort('newest'); setShowSortMenu(false); }} className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-3 ${currentSortLabel === 'newest' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                              <Clock size={14} /> Terbaru Ditambahkan
+                            </button>
+                            <button onClick={() => { handleSetSort('oldest'); setShowSortMenu(false); }} className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-3 ${currentSortLabel === 'oldest' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                              <History size={14} /> Terlama Ditambahkan
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                 {/* TOMBOL SHARE */}
                  <button 
                    onClick={handleShare}
                    title="Salin Tautan Publik (Snapshot Lengkap)"
@@ -668,7 +1055,6 @@ export default function App() {
                     <div className="absolute inset-0 bg-slate-50 rounded-xl opacity-0 group-hover:opacity-100 -z-10 transition-all duration-300 transform scale-75 group-hover:scale-100"></div>
                  </button>
 
-                 {/* TOMBOL BACKUP LOKAL */}
                  <button 
                    onClick={handleExportJSON} 
                    title="Backup Lokal" 
@@ -678,9 +1064,8 @@ export default function App() {
                     <div className="absolute inset-0 bg-slate-50 rounded-xl opacity-0 group-hover:opacity-100 -z-10 transition-all duration-300 transform scale-75 group-hover:scale-100"></div>
                  </button>
                  
-                 {/* TOMBOL PESAWAT (SYNC) */}
                  <button 
-                   onClick={uploadToGithub} 
+                   onClick={initiateUpload} 
                    disabled={isLoading}
                    title="Kirim ke Cloud (GitHub)"
                    className={`p-3 relative group overflow-hidden transition-all duration-300 ${isLoading ? 'text-indigo-400 animate-pulse' : 'text-slate-400 hover:text-slate-900'}`}
@@ -695,7 +1080,6 @@ export default function App() {
                     )}
                  </button>
                  
-                 {/* VERSI PILL */}
                  <div 
                    onClick={activeVersion.includes('*') ? handleSaveVersion : undefined} 
                    className={`cursor-pointer px-5 py-3 rounded-2xl text-xs font-black flex items-center gap-3 border transition-all ${activeVersion.includes('*') ? 'bg-orange-50 border-orange-100 text-orange-600 hover:shadow-xl hover:shadow-orange-50' : 'bg-emerald-50 border-emerald-50 text-emerald-600'}`}
@@ -708,71 +1092,270 @@ export default function App() {
            </div>
         </header>
 
-        {/* Dynamic Canvas */}
-        <div className="flex-1 overflow-y-auto px-10 py-4 custom-scrollbar">
-          <div className="max-w-[1700px] mx-auto pb-32">
-            
-            <div className="mb-14 flex flex-col lg:flex-row lg:items-end justify-between gap-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                   <div className="w-10 h-1 bg-indigo-600 rounded-full"></div>
-                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">Resource Center</span>
-                </div>
-                <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter">
-                  {selectedCat === 'all' ? 'Dashboard Utama' : categories.find(c => c.id === selectedCat)?.label}
-                </h1>
-                <p className="text-slate-400 font-medium mt-4 max-w-2xl text-lg leading-relaxed">{currentCategoryDesc}</p>
-              </div>
-              <button onClick={() => { 
-                const id = Date.now(); 
-                const newApp = { id, name: 'Layanan Baru', desc: 'Masukkan deskripsi di sini.', category: selectedCat === 'all' ? 'umum' : selectedCat, icon: 'LayoutGrid', color: 'from-slate-800 to-slate-950', url: '#' }; 
-                setApps([...apps, newApp]); setEditing(newApp); 
-                markAsDraft(); 
-              }} className="group flex items-center gap-4 px-8 py-4 bg-slate-900 text-white rounded-3xl font-black text-sm shadow-2xl shadow-slate-200 hover:scale-[1.03] transition-all hover:bg-indigo-600">
-                <Plus size={20} strokeWidth={4} />
-                <span>DAFTARKAN LAYANAN</span>
+        {/* --- TAB NAVIGATION BAR --- */}
+        <div className="px-8 pb-4 pt-0 z-30">
+           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+              {/* Home / Dashboard Tab */}
+              <button 
+                 onClick={() => setActiveTabId('dashboard')} 
+                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 ${activeTabId === 'dashboard' ? 'bg-white shadow-md shadow-slate-200 text-slate-800' : 'bg-transparent text-slate-400 hover:bg-slate-100/50 hover:text-slate-600'}`}
+              >
+                 <LayoutGrid size={14} />
+                 <span>Home</span>
               </button>
-            </div>
 
-            {/* Version Logs (Inline History) */}
-            {showHistory && (
-              <div className="mb-14 p-10 bg-white rounded-[3rem] shadow-sm border border-slate-50 animate-in fade-in slide-in-from-top-6 duration-500">
-                 <div className="flex items-center justify-between mb-8">
-                    <h3 className="font-black text-xl text-slate-800 flex items-center gap-4"><History size={24} className="text-indigo-600"/> Riwayat Pembaruan</h3>
-                    <button onClick={() => setShowHistory(false)} className="p-3 hover:bg-slate-50 rounded-full text-slate-300 transition-all"><X size={24} /></button>
-                 </div>
-                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    {history.map(h => (
-                       <button key={h.id} onClick={() => { 
-                         setApps(h.data.apps); 
-                         setCategories(h.data.categories); 
-                         if (h.data.config) {
-                             if (h.data.config.githubUrl) setGithubUrl(h.data.config.githubUrl);
-                             if (h.data.config.dashboardDesc) setDashboardDesc(h.data.config.dashboardDesc);
-                         }
-                         setActiveVersion(h.name); 
-                         setShowHistory(false); 
-                         showToast(`Pulihkan v${h.name}`); 
-                       }} className="p-6 rounded-3xl bg-slate-50/50 border border-transparent hover:border-indigo-100 hover:bg-white hover:shadow-xl transition-all text-left group">
-                          <span className="text-[10px] font-black text-slate-300 group-hover:text-indigo-500 uppercase tracking-widest">Version</span>
-                          <div className="text-2xl font-black text-slate-800 mt-2">v{h.name}</div>
-                          <div className="text-[10px] text-slate-400 mt-4 font-bold flex items-center gap-2"><Clock size={12}/> {h.timestamp.split(' ')[0]}</div>
-                       </button>
-                    ))}
-                 </div>
-              </div>
-            )}
+              {/* Vertical Divider */}
+              <div className="w-px h-5 bg-slate-200 mx-1 shrink-0"></div>
 
-            {/* Grid Fluid Layout */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 md:gap-8">
-              {filtered.map((a, i) => (
-                <div key={a.id} className="animate-in fade-in zoom-in duration-700" style={{ animationDelay: `${i * 40}ms` }}>
-                  <AppCard app={a} onEdit={setEditing} onNotify={(msg) => showToast(msg, "warning")} />
-                </div>
+              {/* Open App Tabs */}
+              {openTabs.map(tab => (
+                 <button 
+                    key={tab.id}
+                    onClick={() => setActiveTabId(tab.id)}
+                    className={`group flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 shrink-0 max-w-[200px] border border-transparent ${activeTabId === tab.id ? 'bg-white shadow-md shadow-indigo-100 text-indigo-600 border-indigo-50' : 'bg-white/40 text-slate-500 hover:bg-white hover:shadow-sm'}`}
+                 >
+                    {React.createElement(IconMap[tab.icon] || FileText, { size: 14 })}
+                    <span className="truncate">{tab.name}</span>
+                    <div 
+                       onClick={(e) => closeTab(e, tab.id)}
+                       className={`p-0.5 rounded-full transition-colors ${activeTabId === tab.id ? 'hover:bg-indigo-100 text-indigo-400' : 'hover:bg-slate-200 text-slate-300 hover:text-slate-500'}`}
+                    >
+                       <X size={12} strokeWidth={3} />
+                    </div>
+                 </button>
               ))}
+           </div>
+        </div>
+
+        {/* Dynamic Canvas / Content Area */}
+        <div className="flex-1 relative overflow-hidden">
+          
+          {/* DASHBOARD VIEW (Always mounted but maybe hidden) */}
+          <div className={`absolute inset-0 overflow-y-auto px-10 py-4 custom-scrollbar transition-opacity duration-300 ${activeTabId === 'dashboard' ? 'opacity-100 z-10' : 'opacity-0 -z-10 pointer-events-none'}`}>
+            <div className="max-w-[1700px] mx-auto pb-32">
+              
+              <div className="mb-14 flex flex-col lg:flex-row lg:items-end justify-between gap-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                     <div className="w-10 h-1 bg-indigo-600 rounded-full"></div>
+                     <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">Resource Center</span>
+                  </div>
+                  <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter">
+                    {selectedCat === 'all' ? dashboardTitle : categories.find(c => c.id === selectedCat)?.label}
+                  </h1>
+                  <p className="text-slate-400 font-medium mt-4 max-w-2xl text-lg leading-relaxed">{currentCategoryDesc}</p>
+                </div>
+                <button onClick={() => { 
+                  const id = Date.now(); 
+                  const newApp = { id, name: 'Layanan Baru', desc: 'Masukkan deskripsi di sini.', category: selectedCat === 'all' ? 'umum' : selectedCat, icon: 'LayoutGrid', color: 'from-slate-800 to-slate-950', url: '#' }; 
+                  // FIX: Jangan langsung simpan ke apps (setApps), cukup set ke mode editing dulu.
+                  // Penyimpanan hanya dilakukan saat tombol "Konfirmasi" ditekan.
+                  setEditing(newApp); 
+                }} className="group flex items-center gap-4 px-8 py-4 bg-slate-900 text-white rounded-3xl font-black text-sm shadow-2xl shadow-slate-200 hover:scale-[1.03] transition-all hover:bg-indigo-600">
+                  <Plus size={20} strokeWidth={4} />
+                  <span>DAFTARKAN LAYANAN</span>
+                </button>
+              </div>
+
+              {/* Version Logs (Inline History) */}
+              {showHistory && (
+                <div className="mb-14 p-10 bg-white rounded-[3rem] shadow-sm border border-slate-50 animate-in fade-in slide-in-from-top-6 duration-500">
+                   <div className="flex items-center justify-between mb-8">
+                      <h3 className="font-black text-xl text-slate-800 flex items-center gap-4"><History size={24} className="text-indigo-600"/> Riwayat Pembaruan</h3>
+                      <button onClick={() => setShowHistory(false)} className="p-3 hover:bg-slate-50 rounded-full text-slate-300 transition-all"><X size={24} /></button>
+                   </div>
+                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                      {history.map(h => (
+                         <button key={h.id} onClick={() => { 
+                           setApps(h.data.apps); 
+                           setCategories(sortCategoriesDesc(h.data.categories));
+                           if (h.data.config) {
+                               if (h.data.config.githubUrl) setGithubUrl(h.data.config.githubUrl);
+                               if (h.data.config.dashboardDesc) setDashboardDesc(h.data.config.dashboardDesc);
+                               if (h.data.config.appTitle) setAppTitle(h.data.config.appTitle);
+                               if (h.data.config.appLogo) setAppLogo(h.data.config.appLogo);
+                               if (h.data.config.dashboardTitle) setDashboardTitle(h.data.config.dashboardTitle);
+                           }
+                           setActiveVersion(h.name); 
+                           setShowHistory(false); 
+                           showToast(`Pulihkan v${h.name}`); 
+                         }} className="p-6 rounded-3xl bg-slate-50/50 border border-transparent hover:border-indigo-100 hover:bg-white hover:shadow-xl transition-all text-left group">
+                            <span className="text-[10px] font-black text-slate-300 group-hover:text-indigo-500 uppercase tracking-widest">Version</span>
+                            <div className="text-2xl font-black text-slate-800 mt-2">v{h.name}</div>
+                            <div className="text-[10px] text-slate-400 mt-4 font-bold flex items-center gap-2"><Clock size={12}/> {h.timestamp.split(' ')[0]}</div>
+                         </button>
+                      ))}
+                   </div>
+                </div>
+              )}
+
+              {/* Grid Fluid Layout */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 md:gap-8">
+                {filtered.map((a, i) => (
+                  <div key={a.id} className="animate-in fade-in zoom-in duration-700 h-full" style={{ animationDelay: `${i * 40}ms` }}>
+                    <AppCard 
+                      app={a} 
+                      onEdit={setEditing} 
+                      onOpen={handleOpenApp}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* ACTIVE TAB VIEWS (IFRAMES) */}
+          {openTabs.map(tab => (
+             <div 
+                key={tab.id} 
+                className={`absolute inset-0 bg-white z-20 flex flex-col transition-all duration-300 ${activeTabId === tab.id ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+             >
+                {/* Iframe Toolbar (EDITABLE ADDRESS BAR) */}
+                <div className="h-14 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between px-4 sm:px-6 backdrop-blur-md sticky top-0 z-30 shadow-sm">
+                   
+                   {/* Editable Address Bar */}
+                   <form 
+                      onSubmit={(e) => handleManualNavigate(e, tab.id, e.target.elements.urlInput.value)}
+                      className="flex-1 flex items-center gap-2 max-w-[60%] sm:max-w-2xl bg-white border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all shadow-inner"
+                   >
+                      <div className={`w-2 h-2 rounded-full bg-gradient-to-br ${tab.color || 'from-indigo-500 to-purple-600'} shrink-0`}></div>
+                      <Globe size={12} className="shrink-0 text-slate-400" />
+                      <input 
+                        name="urlInput"
+                        defaultValue={tab.url}
+                        className="flex-1 text-xs font-medium text-slate-600 outline-none bg-transparent"
+                        placeholder="Masukkan URL..."
+                        onFocus={(e) => e.target.select()}
+                      />
+                      {/* PASTE BUTTON (NEW) */}
+                      <button 
+                        type="button" 
+                        onClick={() => handlePasteAndFix(tab.id)} 
+                        className="p-1 rounded-lg hover:bg-emerald-50 text-slate-300 hover:text-emerald-600 transition-colors"
+                        title="Paste & Fix Link"
+                      >
+                         <Clipboard size={14} />
+                      </button>
+                      
+                      <button type="submit" className="p-1 rounded-lg hover:bg-indigo-50 text-slate-300 hover:text-indigo-600 transition-colors">
+                         <ArrowRight size={12} />
+                      </button>
+                   </form>
+                   
+                   <div className="flex items-center gap-1 sm:gap-2 ml-4">
+                      
+                      {/* --- ZOOM CONTROLS --- */}
+                      <div className="flex items-center bg-white rounded-lg border border-slate-200 p-0.5 mr-2 shadow-sm">
+                         <button 
+                            onClick={() => updateTabZoom(tab.id, -0.1)}
+                            className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-700 transition-colors"
+                            title="Zoom Out (-)"
+                         >
+                            <ZoomOut size={14} />
+                         </button>
+                         <span className="text-[10px] font-bold text-slate-600 w-10 text-center select-none">
+                            {Math.round((tab.zoom || 1) * 100)}%
+                         </span>
+                         <button 
+                            onClick={() => updateTabZoom(tab.id, 0.1)}
+                            className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-700 transition-colors"
+                            title="Zoom In (+)"
+                         >
+                            <ZoomIn size={14} />
+                         </button>
+                         <button 
+                            onClick={() => updateTabZoom(tab.id, 0, 1)}
+                            className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-indigo-600 transition-colors border-l border-slate-100 ml-0.5"
+                            title="Reset Zoom"
+                         >
+                            <RotateCcw size={12} />
+                         </button>
+                      </div>
+
+                      {/* Helper Badge */}
+                      <span className="hidden xl:inline-flex text-[8px] text-slate-400 bg-slate-50 border border-slate-100 px-2 py-1 rounded-md font-bold mr-1">
+                         Jika Error/Tab Baru: Paste link di sini 
+                      </span>
+
+                      <button onClick={() => { 
+                         const iframe = document.getElementById(`iframe-${tab.id}`);
+                         if(iframe) iframe.src = iframe.src;
+                      }} className="p-2 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors" title="Muat Ulang">
+                         <RefreshCw size={16} />
+                      </button>
+                      <button onClick={() => window.open(tab.url, '_blank')} className="p-2 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-colors" title="Buka di Tab Baru (Browser)">
+                         <ExternalLink size={16} />
+                      </button>
+                      <div className="w-px h-4 bg-slate-300 mx-1"></div>
+                      <button onClick={(e) => closeTab(e, tab.id)} className="p-2 hover:bg-rose-100 rounded-lg text-slate-400 hover:text-rose-600 transition-colors" title="Tutup Tab">
+                         <X size={16} />
+                      </button>
+                   </div>
+                </div>
+                
+                {/* Embedded Content Container (Scrollable) */}
+                <div 
+                   className="flex-1 bg-slate-100 relative overflow-auto touch-pan-x touch-pan-y"
+                   onTouchStart={handleTouchStart}
+                   onTouchMove={(e) => handleTouchMove(e, tab.id, tab.zoom)}
+                >
+                   <div 
+                      className="origin-top-left transition-transform duration-100 ease-out min-h-full min-w-full bg-white shadow-lg mx-auto"
+                      style={{ 
+                         transform: `scale(${tab.zoom || 1})`,
+                         width: `${100 / (tab.zoom || 1)}%`,
+                         height: `${100 / (tab.zoom || 1)}%`
+                      }}
+                   >
+                      <iframe 
+                          id={`iframe-${tab.id}`}
+                          src={tab.url} 
+                          className="w-full h-full border-none bg-white"
+                          title={tab.name}
+                          allowFullScreen
+                          referrerPolicy="no-referrer"
+                          sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-presentation allow-modals allow-popups-to-escape-sandbox"
+                      />
+                   </div>
+                   
+                   {/* Fallback info */}
+                   <div className="absolute inset-0 flex flex-col items-center justify-center -z-10 text-slate-400 pointer-events-none">
+                      <p className="text-sm font-bold">Memuat konten...</p>
+                   </div>
+                </div>
+             </div>
+          ))}
+
         </div>
+
+        {/* --- PROFESSIONAL RUNNING FOOTER --- */}
+        <div className="shrink-0 bg-white/80 backdrop-blur-md border-t border-slate-200 py-3 z-30 relative overflow-hidden">
+          <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-white to-transparent z-10"></div>
+          <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-white to-transparent z-10"></div>
+          
+          <div className="flex items-center w-full overflow-hidden">
+             <div className="animate-marquee whitespace-nowrap flex items-center gap-12 text-[10px] italic font-bold text-slate-400 uppercase tracking-widest">
+                {/* Looping Content untuk efek seamless */}
+                {[1, 2, 3, 4].map((i) => (
+                  <React.Fragment key={i}>
+                    <span className="flex items-center gap-2">
+                      <span className="font-black text-slate-500">&copy; 2026 Copyright By Team :</span>
+                      <span className="text-indigo-600 font-black flex items-center gap-2">
+                        <span>Kak Chand</span> • 
+                        <span>Teh Fenn</span> • 
+                        <span>Bang Ali</span> • 
+                        <span>Pak Ded</span> • 
+                        <span>Bu Pipin</span> •
+                        <span>Tatang</span>
+                      </span>
+                    </span>
+                    <Sparkles size={10} className="text-slate-300" />
+                  </React.Fragment>
+                ))}
+             </div>
+          </div>
+        </div>
+
       </main>
 
       {/* Configuration Modal */}
@@ -792,8 +1375,83 @@ export default function App() {
                     <h3 className="font-black text-lg text-slate-700">Pengaturan Umum</h3>
                  </div>
                  <div className="bg-slate-50/50 p-6 rounded-[2rem] space-y-4 border border-slate-100">
+                    {/* AUTO-SYNC TOGGLE (NEW) */}
+                    <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-4">
+                       <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${autoSync ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+                             <Radio size={20} className={autoSync ? 'animate-pulse' : ''} />
+                          </div>
+                          <div>
+                             <h4 className="text-sm font-black text-slate-800">Auto-Sync (Live Mode)</h4>
+                             <p className="text-[10px] text-slate-400 font-bold">Perbarui data otomatis setiap 60 detik.</p>
+                          </div>
+                       </div>
+                       <button 
+                          onClick={() => setAutoSync(!autoSync)} 
+                          className={`relative w-14 h-8 rounded-full transition-all duration-300 ${autoSync ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                       >
+                          <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-sm transition-all duration-300 transform ${autoSync ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                       </button>
+                    </div>
+
                     <div className="space-y-3">
-                       <label className="text-[10px] font-black text-slate-400 ml-3 uppercase tracking-widest">Deskripsi Dashboard Utama</label>
+                       <label className="text-[10px] font-black text-slate-400 ml-3 uppercase tracking-widest">Nama Aplikasi & Logo (Sidebar)</label>
+                       
+                       <div className="flex gap-4">
+                          {/* LOGO PICKER (NEW FEATURE) */}
+                          <div className="relative shrink-0">
+                             <button 
+                                onClick={() => setShowLogoPicker(!showLogoPicker)}
+                                className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-100 hover:scale-105 transition-transform"
+                                title="Ganti Logo Aplikasi"
+                             >
+                                {React.createElement(IconMap[appLogo] || Sparkles, { size: 24, fill: "currentColor" })}
+                             </button>
+
+                             {showLogoPicker && (
+                                <>
+                                  <div className="fixed inset-0 z-20 cursor-default" onClick={() => setShowLogoPicker(false)}></div>
+                                  <div className="absolute top-full left-0 mt-3 p-4 bg-white rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-slate-100 z-30 w-[320px] grid grid-cols-6 gap-3 animate-in fade-in zoom-in-95 duration-200">
+                                      {Object.keys(IconMap).map(key => (
+                                        <button
+                                            key={key}
+                                            onClick={() => { setAppLogo(key); setShowLogoPicker(false); markAsDraft(); }}
+                                            className={`aspect-square rounded-xl flex items-center justify-center transition-all ${appLogo === key ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-110' : 'bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 hover:scale-110'}`}
+                                            title={key}
+                                        >
+                                            {React.createElement(IconMap[key], { size: 20 })}
+                                        </button>
+                                      ))}
+                                  </div>
+                                </>
+                             )}
+                          </div>
+
+                          <div className="flex-1">
+                             <input 
+                                type="text" 
+                                value={appTitle} 
+                                onChange={(e) => { setAppTitle(e.target.value); markAsDraft(); }} 
+                                className="w-full h-full px-6 rounded-2xl border-none bg-white shadow-sm text-sm font-black focus:ring-4 focus:ring-indigo-50 outline-none transition-all" 
+                                placeholder="Contoh: Rendal.Operasi" 
+                             />
+                          </div>
+                       </div>
+                       <p className="text-[10px] text-slate-400 italic ml-2">Tip: Gunakan titik (.) untuk memberi warna aksen otomatis pada teks.</p>
+                    </div>
+
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-slate-400 ml-3 uppercase tracking-widest">Judul Halaman Depan</label>
+                       <input 
+                          type="text" 
+                          value={dashboardTitle} 
+                          onChange={(e) => { setDashboardTitle(e.target.value); markAsDraft(); }} 
+                          className="w-full px-6 py-4 rounded-2xl border-none bg-white shadow-sm text-sm font-bold focus:ring-4 focus:ring-indigo-50 outline-none transition-all" 
+                          placeholder="Contoh: Dashboard Utama" 
+                       />
+                    </div>
+                    <div className="space-y-3">
+                       <label className="text-[10px] font-black text-slate-400 ml-3 uppercase tracking-widest">Deskripsi Dashboard</label>
                        <textarea 
                           value={dashboardDesc} 
                           onChange={(e) => { setDashboardDesc(e.target.value); markAsDraft(); }} 
@@ -820,23 +1478,38 @@ export default function App() {
                     {categories.length === 0 && <p className="text-center text-slate-400 text-xs py-4">Belum ada kategori.</p>}
                     
                     {categories.map((c, idx) => (
-                      <div key={c.id} className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                      <div key={c.id} className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all relative">
                          {/* Row 1: Header */}
                          <div className="flex items-center gap-3 p-3">
-                            {/* Icon Selector */}
+                            
+                            {/* Icon Selector (VISUAL PICKER UNTUK KATEGORI) */}
                             <div className="relative shrink-0">
-                                <select 
-                                  value={c.icon} 
-                                  onChange={(e) => updateCategory(c.id, 'icon', e.target.value)}
-                                  className="appearance-none w-10 h-10 rounded-xl bg-slate-50 border-none text-transparent cursor-pointer absolute inset-0 z-10 opacity-0"
+                                <button
+                                  onClick={() => setActiveCatIconPicker(activeCatIconPicker === c.id ? null : c.id)}
+                                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${activeCatIconPicker === c.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-110' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
+                                  title="Ganti Ikon Kategori"
                                 >
-                                  {Object.keys(IconMap).map(iconName => (
-                                    <option key={iconName} value={iconName}>{iconName}</option>
-                                  ))}
-                                </select>
-                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center pointer-events-none">
                                   {React.createElement(IconMap[c.icon] || Briefcase, { size: 18 })}
-                                </div>
+                                </button>
+                                
+                                {/* Popover Grid Icons */}
+                                {activeCatIconPicker === c.id && (
+                                   <>
+                                      <div className="fixed inset-0 z-10 cursor-default" onClick={() => setActiveCatIconPicker(null)}></div>
+                                      <div className="absolute top-full left-0 mt-2 p-3 bg-white rounded-2xl shadow-xl border border-slate-100 z-20 w-[280px] grid grid-cols-6 gap-2 animate-in fade-in zoom-in-95 duration-200">
+                                         {Object.keys(IconMap).map(key => (
+                                            <button
+                                               key={key}
+                                               onClick={() => { updateCategory(c.id, 'icon', key); setActiveCatIconPicker(null); }}
+                                               className={`aspect-square rounded-lg flex items-center justify-center transition-all ${c.icon === key ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 hover:scale-110'}`}
+                                               title={key}
+                                            >
+                                               {React.createElement(IconMap[key], { size: 16 })}
+                                            </button>
+                                         ))}
+                                      </div>
+                                   </>
+                                )}
                             </div>
 
                             {/* Label Input */}
@@ -880,18 +1553,56 @@ export default function App() {
                  <div className="bg-slate-50/50 p-8 rounded-[2rem] space-y-6 border border-slate-100">
                     <div className="space-y-3">
                        <label className="text-[10px] font-black text-slate-400 ml-3 uppercase tracking-widest">Repository URL</label>
-                       <input type="text" value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} className="w-full px-6 py-4 rounded-2xl border-none bg-white shadow-sm text-sm font-bold focus:ring-4 focus:ring-indigo-50 outline-none transition-all" placeholder="https://github.com/..." />
+                       <input 
+                          type="password" 
+                          value={githubUrl} 
+                          onChange={(e) => setGithubUrl(e.target.value)} 
+                          className="w-full px-6 py-4 rounded-2xl border-none bg-white shadow-sm text-sm font-bold focus:ring-4 focus:ring-indigo-50 outline-none transition-all" 
+                          placeholder="https://github.com/..." 
+                       />
                     </div>
                     <div className="space-y-3">
                        <label className="text-[10px] font-black text-slate-400 ml-3 uppercase tracking-widest">Personal Access Token</label>
                        <input type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} className="w-full px-6 py-4 rounded-2xl border-none bg-white shadow-sm text-sm font-bold focus:ring-4 focus:ring-indigo-50 outline-none transition-all" placeholder="ghp_****************" />
                     </div>
+                    
+                    {/* NEW: Upload Authorization Code (Removed from Settings UI, kept in logic) */}
+                    
                     <div className="flex gap-4 pt-4">
                        <button onClick={() => fetchFromGithub(githubUrl)} className="flex-1 py-4 bg-white text-slate-700 font-black text-xs rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all border border-slate-100 flex items-center justify-center gap-3"><RefreshCw size={16} /> TARIK DATA</button>
-                       <button onClick={uploadToGithub} className="flex-1 py-4 bg-indigo-600 text-white font-black text-xs rounded-2xl shadow-xl shadow-indigo-100 hover:shadow-indigo-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-3"><Send size={16} /> UNGGAH DATA</button>
+                       <button onClick={initiateUpload} className="flex-1 py-4 bg-indigo-600 text-white font-black text-xs rounded-2xl shadow-xl shadow-indigo-100 hover:shadow-indigo-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-3"><Send size={16} /> UNGGAH DATA</button>
                     </div>
                  </div>
               </section>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* AUTH POPUP MODAL (NEW) */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm p-8 animate-in zoom-in-95 duration-300 border border-slate-100 text-center">
+            <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-lg shadow-indigo-50">
+               <Lock size={32} />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 mb-2">Otorisasi Diperlukan</h3>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">Masukkan kode akses untuk melanjutkan proses unggah data ke cloud.</p>
+            
+            <input 
+               type="password" 
+               value={authInput}
+               onChange={(e) => setAuthInput(e.target.value)}
+               className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-center text-lg font-bold tracking-widest mb-6 focus:ring-4 focus:ring-indigo-100 transition-all outline-none"
+               placeholder="• • •"
+               autoFocus
+            />
+
+            <div className="flex gap-3">
+               <button onClick={() => { setShowAuthModal(false); setAuthInput(''); }} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors text-xs">Batal</button>
+               <button onClick={handleAuthSubmit} className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 text-xs flex items-center justify-center gap-2">
+                  <Unlock size={14} /> Buka Akses
+               </button>
             </div>
           </div>
         </div>
@@ -900,20 +1611,112 @@ export default function App() {
       {/* Editing Drawer / Modal */}
       {editing && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[110] flex items-center justify-center p-6">
-          <div className="bg-white rounded-[3rem] shadow-4xl w-full max-w-xl p-10 animate-in zoom-in-95 duration-300">
+          <div className="bg-white rounded-[3rem] shadow-4xl w-full max-w-xl p-10 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center gap-4 mb-10">
                <div className="w-1.5 h-10 bg-indigo-600 rounded-full"></div>
                <h2 className="text-3xl font-black text-slate-800 tracking-tighter">Edit Layanan</h2>
             </div>
             
             <div className="space-y-6">
+              
+              {/* --- BAGIAN BARU: SELECTOR IKON & WARNA --- */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Tampilan Visual</label>
+                <div className="flex gap-5 items-start">
+                  
+                  {/* Icon Selector (VISUAL PICKER) */}
+                  <div className="relative shrink-0 z-50">
+                     <button 
+                        onClick={() => setShowIconPicker(!showIconPicker)}
+                        className={`w-24 h-24 rounded-3xl bg-gradient-to-br ${editing.color || 'from-slate-800 to-slate-950'} flex items-center justify-center text-white shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] relative group border-4 border-white`}
+                        title="Klik untuk ganti ikon"
+                     >
+                        {React.createElement(IconMap[editing.icon] || LayoutGrid, { size: 40, strokeWidth: 1.5 })}
+                        <div className="absolute -bottom-2 -right-2 bg-white text-slate-800 p-2 rounded-full shadow-lg border border-slate-50 z-10 group-hover:scale-110 transition-transform">
+                           <RefreshCw size={14} />
+                        </div>
+                     </button>
+
+                     {/* Popover Grid Icons */}
+                     {showIconPicker && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowIconPicker(false)}></div>
+                          <div className="absolute top-full left-0 mt-3 p-3 bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] border border-slate-100 z-50 w-[300px] grid grid-cols-5 gap-2 animate-in fade-in zoom-in-95 duration-200 h-64 overflow-y-auto custom-scrollbar">
+                              {Object.keys(IconMap).map(key => (
+                                <button
+                                    key={key}
+                                    onClick={() => { setEditing({...editing, icon: key}); setShowIconPicker(false); }}
+                                    className={`aspect-square rounded-xl flex items-center justify-center transition-all ${editing.icon === key ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-105' : 'bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 hover:scale-110'}`}
+                                    title={key}
+                                >
+                                    {React.createElement(IconMap[key], { size: 20 })}
+                                </button>
+                              ))}
+                          </div>
+                        </>
+                     )}
+                  </div>
+
+                  {/* Color Picker Grid (COMPACT VERSION) */}
+                  <div className="flex-1">
+                     <p className="text-xs text-slate-400 font-bold mb-3 ml-1">Pilih Tema Warna</p>
+                     <div className="grid grid-cols-9 gap-1.5">
+                       {[
+                         // Classic
+                         'from-blue-500 to-indigo-600', 
+                         'from-emerald-500 to-teal-600', 
+                         'from-orange-500 to-red-600', 
+                         'from-rose-500 to-pink-600',
+                         'from-violet-500 to-purple-600', 
+                         'from-slate-700 to-slate-900',
+                         // New Vibrant Options
+                         'from-cyan-500 to-blue-600',
+                         'from-amber-400 to-orange-500',
+                         'from-lime-500 to-green-600',
+                         'from-fuchsia-600 to-pink-600',
+                         'from-sky-500 to-indigo-500',
+                         'from-indigo-500 to-purple-500',
+                         // Dark & Elegant
+                         'from-gray-800 to-black',
+                         'from-slate-600 to-zinc-800',
+                         'from-neutral-700 to-stone-800',
+                         // Bright & Fresh
+                         'from-teal-400 to-emerald-600',
+                         'from-red-500 to-rose-700',
+                         'from-pink-500 to-rose-500'
+                       ].map((c, i) => (
+                         <button 
+                           key={i} 
+                           onClick={() => setEditing({...editing, color: c})}
+                           // PERUBAHAN: aspect-square diubah menjadi h-6 (tinggi fix 24px) agar lebih kecil dan pas
+                           className={`w-full h-6 rounded-md bg-gradient-to-br ${c} ${editing.color === c ? 'ring-2 ring-offset-1 ring-slate-900 scale-90' : 'hover:scale-110 hover:shadow-md'} transition-all`}
+                           title="Pilih warna"
+                         />
+                       ))}
+                     </div>
+                  </div>
+                </div>
+              </div>
+              {/* --- END BAGIAN BARU --- */}
+
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Label Aplikasi</label>
                 <input type="text" value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-black focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Endpoint URL</label>
-                <input type="text" value={editing.url} onChange={e => setEditing({...editing, url: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Endpoint URL / Protokol Aplikasi</label>
+                <input 
+                  type="text" 
+                  value={editing.url} 
+                  onChange={e => setEditing({...editing, url: e.target.value})} 
+                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all" 
+                  placeholder="https://... atau calculator: atau edmi://"
+                />
+                <p className="text-[9px] text-slate-400 ml-2 italic">
+                   Google Drive/Docs: Buka di Tab Aplikasi<br/>
+                   Website Lain: Buka di Browser (Tab Baru)<br/>
+                   App PC: <b>eziview://</b> (Buka Langsung)
+                </p>
               </div>
               <div className="space-y-3">
                  <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Kategori</label>
@@ -927,19 +1730,37 @@ export default function App() {
               </div>
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-300 ml-2 uppercase tracking-widest">Ringkasan Layanan</label>
-                <textarea value={editing.desc} onChange={e => setEditing({...editing, desc: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold h-28 resize-none focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
+                {/* PERUBAHAN: h-14 dikembalikan menjadi h-20 */}
+                <textarea 
+                  value={editing.desc} 
+                  onChange={e => setEditing({...editing, desc: e.target.value})} 
+                  className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm font-bold h-20 resize-none focus:bg-white focus:ring-4 focus:ring-indigo-50 outline-none transition-all" 
+                />
               </div>
             </div>
             <div className="mt-12 flex gap-4">
               <button onClick={handleDeleteApp} className="px-8 py-4 text-rose-500 font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 rounded-2xl transition-all">Hapus</button>
               <div className="flex-1"></div>
               <button onClick={() => setEditing(null)} className="px-8 py-4 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 rounded-2xl transition-all">Batal</button>
-              <button onClick={() => { setApps(prev => prev.map(x => x.id === editing.id ? editing : x)); markAsDraft(); setEditing(null); }} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-slate-200 hover:bg-indigo-600 hover:scale-105 transition-all">Konfirmasi</button>
+              
+              {/* FIX: Logika Simpan Pintar (Update jika ada, Tambah Baru jika belum ada) */}
+              <button onClick={() => { 
+                const exists = apps.some(a => a.id === editing.id);
+                if (exists) {
+                   // Update data lama
+                   setApps(prev => prev.map(x => x.id === editing.id ? editing : x));
+                } else {
+                   // Tambah data baru
+                   setApps(prev => [...prev, editing]);
+                }
+                markAsDraft(); 
+                setEditing(null); 
+              }} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-slate-200 hover:bg-indigo-600 hover:scale-105 transition-all">Konfirmasi</button>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Global Confirmation Modal */}
       {confirmAction && (
         <ConfirmModal 
@@ -958,6 +1779,21 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Animation Keyframes for Marquee */
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 30s linear infinite;
+        }
+        /* Pause on hover for readability */
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
       `}</style>
     </div>
   );
