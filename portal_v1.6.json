@@ -300,7 +300,6 @@
   ],
   "config": {
     "githubUrl": "https://github.com/dokterdarlinsyah-cmd/portal",
-    "vercelApiUrl": "https://portal-proxy-mu.vercel.app/api/proxy",
     "dashboardDesc": "Managemen aplikasi terpadu untuk mendukung produktivitas dan integrasi data perusahaan secara *real-time*.",
     "appTitle": "Rendal Operasi         & Niaga",
     "appLogo": "Sparkles",
